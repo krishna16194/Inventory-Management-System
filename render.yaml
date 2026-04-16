@@ -4,7 +4,7 @@ services:
     env: java
     plan: free
     region: frankfurt
-    branch: main
+    branch: master
     build:
       command: "./gradlew bootJar"
     start:
