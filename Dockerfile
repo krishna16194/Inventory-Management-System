@@ -1,5 +1,5 @@
-# Use a lightweight JRE base image
-FROM openjdk:21-slim
+# Use a lightweight, production-grade Java 21 JRE
+FROM eclipse-temurin:21-jre-jammy
 
 # Set the working directory inside the container
 WORKDIR /app
