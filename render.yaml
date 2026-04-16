@@ -1,19 +1,16 @@
 services:
   - type: web
     name: inventory-management-system
-    runtime: java
+    env: java
     plan: free
     region: frankfurt
     branch: master
-
-    buildCommand: "./mvnw clean package"
-    startCommand: "java -jar target/Inventory-Management-System-0.0.1-SNAPSHOT.jar"
-
-    disk:
-      name: inventory-data
-      mountPath: /data
-      sizeGB: 1
-
+    buildCommand: "./gradlew bootJar"
+    startCommand: "java -jar build/libs/Inventory-Management-System-0.0.1-SNAPSHOT.jar"
+    disks:
+      - name: inventory-data
+        mountPath: /data
+        sizeGB: 1
     envVars:
       - key: SPRING_DATASOURCE_URL
         value: jdbc:h2:file:/data/inventory-db
