@@ -13,6 +13,8 @@ services:
         fromDatabase:
           name: inventory-db
           property: connectionString
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
 
 databases:
   - name: inventory-db
