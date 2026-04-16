@@ -19,3 +19,4 @@ services:
 databases:
   - name: inventory-db
     plan: free
+    region: frankfurt

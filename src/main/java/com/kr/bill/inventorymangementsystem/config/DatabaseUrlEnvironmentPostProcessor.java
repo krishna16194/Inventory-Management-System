@@ -43,7 +43,11 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
                     password = parts.length > 1 ? parts[1] : "";
                 }
 
-                jdbcUrl = "jdbc:postgresql://" + host + ":" + port + path + "?sslmode=require";
+                // Internal Render hostnames (e.g. dpg-xxx-a) don't need SSL
+                // External hostnames (e.g. dpg-xxx-a.oregon-postgres.render.com) require SSL
+                boolean isInternal = !host.contains(".");
+                String sslParam = isInternal ? "sslmode=disable" : "sslmode=require";
+                jdbcUrl = "jdbc:postgresql://" + host + ":" + port + path + "?" + sslParam;
             }
 
             Map<String, Object> props = new HashMap<>();
