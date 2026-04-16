@@ -12,7 +12,15 @@ services:
       - key: SPRING_DATASOURCE_URL
         fromDatabase:
           name: inventory-db
-          property: connectionString
+          property: jdbcConnectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: inventory-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: inventory-db
+          property: password
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: update
 
