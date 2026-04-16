@@ -4,8 +4,8 @@ services:
     env: docker
     plan: free
     region: frankfurt
-    branch: master
-    buildCommand: "./gradlew bootBuildImage"
+    branch: main
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: SPRING_DATASOURCE_URL
         fromDatabase:
