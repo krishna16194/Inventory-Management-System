@@ -1,28 +1,14 @@
-# --- Stage 1: Build the application ---
-FROM eclipse-temurin:21-jdk-jammy AS builder
+# Use a lightweight JRE base image
+FROM openjdk:21-slim
 
-WORKDIR /workspace/app
-
-# Copy Gradle wrapper and config
-COPY gradlew ./
-COPY gradle gradle
-COPY build.gradle settings.gradle ./
-
-# Copy source code
-COPY src src
-
-# Build the bootable JAR
-RUN chmod +x ./gradlew && \
-    ./gradlew bootJar --no-daemon
-
-# --- Stage 2: Runtime image (small & secure) ---
-FROM eclipse-temurin:21-jre-jammy
-
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy only the JAR from builder
-COPY --from=builder /workspace/app/build/libs/*.jar app.jar
+# Copy the pre-built JAR file from the repository
+COPY build/libs/*.jar app.jar
 
+# Expose the port the app runs on
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+# Command to run the application
+ENTRYPOINT ["java","-jar","/app/app.jar"]
