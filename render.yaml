@@ -7,6 +7,8 @@ services:
     branch: master
     dockerfilePath: ./Dockerfile
     envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: render
       - key: SPRING_DATASOURCE_URL
         fromDatabase:
           name: inventory-db
