@@ -7,7 +7,11 @@ COPY build.gradle settings.gradle ./
 COPY src src
 
 RUN chmod +x ./gradlew && \
-    ./gradlew bootJar --no-daemon
+    ./gradlew clean bootJar \
+      --no-daemon \
+      --stacktrace \
+      --info \
+      --warning-mode all
 
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
