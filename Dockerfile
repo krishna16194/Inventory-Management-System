@@ -1,14 +1,16 @@
-# Use a lightweight, production-grade Java 21 JRE
+FROM eclipse-temurin:21-jdk-jammy AS builder
+WORKDIR /workspace/app
+
+COPY gradlew ./
+COPY gradle gradle
+COPY build.gradle settings.gradle ./
+COPY src src
+
+RUN chmod +x ./gradlew && \
+    ./gradlew bootJar --no-daemon
+
 FROM eclipse-temurin:21-jre-jammy
-
-# Set the working directory inside the container
 WORKDIR /app
-
-# Copy the pre-built JAR file from the repository
-COPY build/libs/*.jar app.jar
-
-# Expose the port the app runs on
+COPY --from=builder /workspace/app/build/libs/*.jar app.jar
 EXPOSE 8080
-
-# Command to run the application
 ENTRYPOINT ["java","-jar","/app/app.jar"]
