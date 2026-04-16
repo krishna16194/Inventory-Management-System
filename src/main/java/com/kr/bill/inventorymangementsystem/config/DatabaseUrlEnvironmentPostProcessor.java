@@ -43,7 +43,7 @@ public class DatabaseUrlEnvironmentPostProcessor implements EnvironmentPostProce
                     password = parts.length > 1 ? parts[1] : "";
                 }
 
-                jdbcUrl = "jdbc:postgresql://" + host + ":" + port + path;
+                jdbcUrl = "jdbc:postgresql://" + host + ":" + port + path + "?sslmode=require";
             }
 
             Map<String, Object> props = new HashMap<>();
