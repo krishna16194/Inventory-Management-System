@@ -9,10 +9,15 @@
     <meta name="theme-color" content="#4a90e2">
 </head>
 <body>
+    <!-- =====================================================================
+         Navigation Bar
+         ===================================================================== -->
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="#" th:text="#{nav.brand}">Inventory System</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav" aria-controls="navbarNav"
+                    aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -27,14 +32,22 @@
                         <a class="nav-link" th:href="@{/bill-history}">Bill History</a>
                     </li>
                 </ul>
-                <div class="d-flex">
+                <div class="d-flex align-items-center gap-2">
+                    <!-- Low-stock alert badge in navbar -->
+                    <a th:href="@{/stats-dashboard}" th:if="${lowStockCount > 0}"
+                       class="btn btn-sm btn-warning position-relative" title="Low stock products">
+                        ⚠ Low Stock
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                              th:text="${lowStockCount}"></span>
+                    </a>
                     <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-secondary dropdown-toggle" type="button"
+                                id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             Language
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-                            <li><a class="dropdown-item" href="?lang=en">English</a></li>
-                            <li><a class="dropdown-item" href="?lang=ta">தமிழ்</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                            <li><a class="dropdown-item" href="?lang=en">🇬🇧 English</a></li>
+                            <li><a class="dropdown-item" href="?lang=ta">🇮🇳 தமிழ்</a></li>
                         </ul>
                     </div>
                 </div>
@@ -43,163 +56,305 @@
     </nav>
 
     <div class="container">
-        <div class="info-bar">
-            <div><strong>Date:</strong> <span id="current-date"></span></div>
-            <div><strong>Time:</strong> <span id="current-time"></span></div>
-            <div><strong>Location:</strong> <span id="current-location"></span></div>
+
+        <!-- =================================================================
+             Info Bar – date / time / location + today's quick-stats
+             ================================================================= -->
+        <div class="info-bar mt-3">
+            <div><strong>📅 Date:</strong> <span id="current-date"></span></div>
+            <div><strong>🕐 Time:</strong> <span id="current-time"></span></div>
+            <div><strong>📍 Location:</strong> <span id="current-location">Locating…</span></div>
+            <div><strong>💰 Today's Revenue:</strong>
+                <span class="text-success fw-bold"
+                      th:text="'$' + ${#numbers.formatDecimal(todayRevenue, 1, 2)}">$0.00</span>
+            </div>
+            <div><strong>🧾 Bills Today:</strong>
+                <span class="fw-bold" th:text="${todayBillCount}">0</span>
+            </div>
         </div>
 
-        <div th:if="${success}" class="alert alert-success alert-dismissible fade show mt-3" role="alert" id="success-alert">
-            <span th:text="${success}"></span>
+        <!-- Flash messages -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show mt-3"
+             role="alert" id="success-alert">
+            <i class="me-1">✅</i> <span th:text="${success}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
-        <div th:if="${error}" class="alert alert-danger mt-3" role="alert" th:text="${error}"></div>
+        <div th:if="${error}" class="alert alert-danger mt-3" role="alert">
+            <i class="me-1">❌</i> <span th:text="${error}"></span>
+        </div>
 
-        <div id="scanner-container" style="width: 500px; display: none; margin-top: 20px;"></div>
+        <!-- Shared scanner element – moved between tabs by JS -->
+        <div id="scanner-container" style="width:100%;max-width:500px;display:none;margin-top:16px;"></div>
 
+        <!-- =================================================================
+             Tabs
+             ================================================================= -->
         <ul class="nav nav-tabs mt-4" id="dashboardTabs" role="tablist">
             <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="billing-tab" data-bs-toggle="tab" data-bs-target="#billing" type="button" role="tab" aria-controls="billing" aria-selected="true" th:text="#{tab.billing}">Billing</button>
+                <button class="nav-link active" id="billing-tab"
+                        data-bs-toggle="tab" data-bs-target="#billing"
+                        type="button" role="tab" aria-controls="billing" aria-selected="true"
+                        th:text="#{tab.billing}">Billing</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="add-inventory-tab" data-bs-toggle="tab" data-bs-target="#add-inventory" type="button" role="tab" aria-controls="add-inventory" aria-selected="false" th:text="#{tab.add.inventory}">Add Inventory</button>
+                <button class="nav-link" id="add-inventory-tab"
+                        data-bs-toggle="tab" data-bs-target="#add-inventory"
+                        type="button" role="tab" aria-controls="add-inventory" aria-selected="false"
+                        th:text="#{tab.add.inventory}">Add Inventory</button>
             </li>
             <li class="nav-item" role="presentation">
-                <button class="nav-link" id="view-inventory-tab" data-bs-toggle="tab" data-bs-target="#view-inventory" type="button" role="tab" aria-controls="view-inventory" aria-selected="false" th:text="#{tab.view.inventory}">View Inventory</button>
+                <button class="nav-link" id="view-inventory-tab"
+                        data-bs-toggle="tab" data-bs-target="#view-inventory"
+                        type="button" role="tab" aria-controls="view-inventory" aria-selected="false">
+                    <span th:text="#{tab.view.inventory}">View Inventory</span>
+                    <!-- Low-stock badge on the tab itself -->
+                    <span th:if="${lowStockCount > 0}"
+                          class="badge bg-warning text-dark ms-1"
+                          th:text="${lowStockCount} + ' low'"></span>
+                </button>
             </li>
         </ul>
 
         <div class="tab-content" id="dashboardTabsContent">
-            <!-- Billing Tab -->
+
+            <!-- =============================================================
+                 BILLING TAB
+                 ============================================================= -->
             <div class="tab-pane fade show active" id="billing" role="tabpanel" aria-labelledby="billing-tab">
                 <div class="card mt-4">
-                    <div class="card-header">
-                        <h2 th:text="#{billing.header}">Billing</h2>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span th:text="#{billing.header}">Billing</span>
+                        <!-- Live cart unit count badge -->
+                        <span class="badge bg-primary" id="cart-count-badge"
+                              th:text="${#maps.isEmpty(cart)} ? '0 items' : ${#aggregates.sum(cart.values())} + ' items'">
+                            0 items
+                        </span>
                     </div>
                     <div class="card-body">
-                        <div id="billing-scanner-placeholder"></div>
-                        <button id="billing-scan-button" class="btn btn-primary my-3" th:text="#{billing.scan.button}">Start/Stop Scanning</button>
 
-                        <div class="mb-3">
-                            <input type="text" id="product-search" class="form-control" placeholder="Search by Product Name or ID...">
-                            <div id="search-results" class="list-group"></div>
+                        <!-- Scanner placeholder + controls -->
+                        <div id="billing-scanner-placeholder"></div>
+                        <div class="d-flex align-items-center gap-2 my-3">
+                            <button id="billing-scan-button" class="btn btn-primary"
+                                    th:text="#{billing.scan.button}">Start Scanning</button>
+                            <span class="text-muted small">Click to start continuous scanning. Click again to stop.</span>
+                        </div>
+                        <div id="billing-scan-feedback" class="alert d-none mb-2" role="alert"
+                             style="font-size:0.95rem;"></div>
+
+                        <!-- Product search -->
+                        <div class="mb-3 position-relative">
+                            <input type="text" id="product-search" class="form-control"
+                                   placeholder="🔍 Search by Product Name or ID…" autocomplete="off">
+                            <div id="search-results" class="list-group position-absolute w-100"
+                                 style="z-index:1000;"></div>
                         </div>
 
                         <hr/>
-                        <h4 th:text="#{billing.current.bill}">Current Bill</h4>
-                        <table class="table table-striped">
-                            <thead>
+                        <h5 th:text="#{billing.current.bill}">Current Bill</h5>
+
+                        <!-- Empty-cart placeholder -->
+                        <div id="empty-cart-msg" th:if="${#maps.isEmpty(cart)}"
+                             class="text-center text-muted py-4">
+                            <span style="font-size:2rem;">🛒</span>
+                            <p class="mt-2 mb-0">Cart is empty — scan or search a product to begin.</p>
+                        </div>
+
+                        <table class="table table-hover table-striped" id="billing-table"
+                               th:classappend="${#maps.isEmpty(cart)} ? 'd-none' : ''">
+                            <thead class="table-light">
                                 <tr>
                                     <th th:text="#{billing.product.name}">Product Name</th>
                                     <th th:text="#{billing.price}">Price</th>
                                     <th th:text="#{billing.quantity}">Quantity</th>
                                     <th th:text="#{billing.subtotal}">Subtotal</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody id="billing-table-body">
                                 <tr th:each="item : ${cart}" class="billing-item-row">
                                     <td th:text="${item.key.name}"></td>
-                                    <td class="price" th:text="'$' + ${#numbers.formatDecimal(item.key.price, 1, 2)}" th:data-price="${item.key.price}"></td>
+                                    <td class="price"
+                                        th:text="'$' + ${#numbers.formatDecimal(item.key.price, 1, 2)}"
+                                        th:data-price="${item.key.price}"></td>
                                     <td>
                                         <form th:action="@{/billing/update}" method="post" class="d-flex">
                                             <input type="hidden" name="productId" th:value="${item.key.id}" />
-                                            <input type="number" name="quantity" th:value="${item.value}" class="form-control quantity-input" style="width: 80px;" min="0" />
-                                            <button type="submit" class="btn btn-sm btn-primary ms-2" th:text="#{view.inventory.edit}">Update</button>
+                                            <input type="number" name="quantity" th:value="${item.value}"
+                                                   class="form-control quantity-input"
+                                                   style="width:80px;" min="0" />
+                                            <button type="submit" class="btn btn-sm btn-outline-primary ms-2"
+                                                    th:text="#{view.inventory.edit}">Update</button>
                                         </form>
                                     </td>
-                                    <td class="subtotal" th:text="'$' + ${#numbers.formatDecimal(item.key.price * item.value, 1, 2)}"></td>
+                                    <td class="subtotal"
+                                        th:text="'$' + ${#numbers.formatDecimal(item.key.price * item.value, 1, 2)}"></td>
+                                    <td>
+                                        <form th:action="@{/billing/update}" method="post">
+                                            <input type="hidden" name="productId" th:value="${item.key.id}" />
+                                            <input type="hidden" name="quantity" value="0" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">✕</button>
+                                        </form>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
-                        <div th:if="${not #maps.isEmpty(cart)}">
+
+                        <!-- Checkout section – always in DOM, shown/hidden by JS -->
+                        <div id="billing-checkout-section"
+                             th:style="${not #maps.isEmpty(cart)} ? '' : 'display:none'">
                             <hr/>
                             <form th:action="@{/billing/checkout}" method="post">
-                                <div class="row">
-                                    <div class="col-md-6 mb-3">
-                                        <input type="text" name="customerName" class="form-control" placeholder="Customer Name" required>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Customer Name</label>
+                                        <input type="text" name="customerName" class="form-control"
+                                               placeholder="e.g. John Doe" required>
                                     </div>
-                                    <div class="col-md-6 mb-3">
-                                        <input type="text" name="customerNumber" class="form-control" placeholder="Customer Number" required>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">Customer Number</label>
+                                        <input type="text" name="customerNumber" class="form-control"
+                                               placeholder="e.g. +1-555-0100" required>
                                     </div>
                                 </div>
                                 <input type="hidden" name="location" id="location-input">
-                                <div class="d-flex justify-content-end align-items-center mt-3">
-                                    <h3 class="me-3"><span th:text="#{billing.total}">Total</span>: <span class="text-success" id="grand-total" th:text="'$' + ${#numbers.formatDecimal(total, 1, 2)}"></span></h3>
-                                    <a href="/billing/clear" class="btn btn-danger me-2" th:text="#{billing.clear.bill}">Clear Bill</a>
-                                    <button type="submit" class="btn btn-primary" th:text="#{billing.checkout}">Checkout</button>
+                                <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+                                    <h4 class="mb-0">
+                                        <span th:text="#{billing.total}">Total</span>:
+                                        <span class="text-success" id="grand-total"
+                                              th:text="'$' + ${#numbers.formatDecimal(total, 1, 2)}">$0.00</span>
+                                    </h4>
+                                    <div class="d-flex gap-2">
+                                        <a href="/billing/clear" class="btn btn-outline-danger"
+                                           onclick="return confirm('Clear the entire bill?')"
+                                           th:text="#{billing.clear.bill}">Clear Bill</a>
+                                        <button type="submit" class="btn btn-success"
+                                                th:text="#{billing.checkout}">Checkout</button>
+                                    </div>
                                 </div>
                             </form>
                         </div>
+
                     </div>
                 </div>
-            </div>
+            </div><!-- /billing tab -->
 
-            <!-- Add Inventory Tab -->
+            <!-- =============================================================
+                 ADD INVENTORY TAB
+                 ============================================================= -->
             <div class="tab-pane fade" id="add-inventory" role="tabpanel" aria-labelledby="add-inventory-tab">
                 <div class="card mt-4">
-                    <div class="card-header">
-                        <h2 th:text="#{add.inventory.header}">Add New Product</h2>
-                    </div>
+                    <div class="card-header" th:text="#{add.inventory.header}">Add / Update Product</div>
                     <div class="card-body">
                         <div id="inventory-scanner-placeholder"></div>
-                        <button id="inventory-scan-button" class="btn btn-primary my-3" th:text="#{add.inventory.scan.button}">Start/Stop Scanning</button>
+                        <div class="d-flex align-items-center gap-2 my-3">
+                            <button id="inventory-scan-button" class="btn btn-primary"
+                                    th:text="#{add.inventory.scan.button}">Start Scanning</button>
+                            <span class="text-muted small">Scan a barcode to auto-fill the form. Existing products will be pre-loaded for editing.</span>
+                        </div>
+                        <div id="inventory-scan-feedback" class="alert d-none mb-3" role="alert"
+                             style="font-size:0.95rem;"></div>
+
                         <form id="add-inventory-form" th:action="@{/products}" th:object="${product}" method="post">
-                            <div class="row">
-                                <div class="col-md-3 mb-3">
-                                    <input type="text" class="form-control" th:field="*{id}" id="inventoryProductId" th:placeholder="#{add.inventory.product.id.placeholder}" required />
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold"
+                                           th:text="#{view.inventory.product.id}">ID / Barcode</label>
+                                    <input type="text" class="form-control" th:field="*{id}"
+                                           id="inventoryProductId"
+                                           th:placeholder="#{add.inventory.product.id.placeholder}" required />
                                 </div>
-                                <div class="col-md-3 mb-3">
-                                    <input type="text" class="form-control" th:field="*{name}" id="inventoryProductName" th:placeholder="#{add.inventory.product.name.placeholder}" required />
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold"
+                                           th:text="#{view.inventory.product.name}">Name</label>
+                                    <input type="text" class="form-control" th:field="*{name}"
+                                           id="inventoryProductName"
+                                           th:placeholder="#{add.inventory.product.name.placeholder}" required />
                                 </div>
-                                <div class="col-md-3 mb-3">
-                                    <input type="number" step="0.01" class="form-control" th:field="*{price}" id="inventoryProductPrice" th:placeholder="#{add.inventory.product.price.placeholder}" required />
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold"
+                                           th:text="#{view.inventory.product.price}">Price ($)</label>
+                                    <input type="number" step="0.01" min="0" class="form-control"
+                                           th:field="*{price}" id="inventoryProductPrice"
+                                           th:placeholder="#{add.inventory.product.price.placeholder}" required />
                                 </div>
-                                <div class="col-md-3 mb-3">
-                                    <input type="number" class="form-control" th:field="*{quantity}" id="inventoryProductQuantity" th:placeholder="#{add.inventory.product.quantity.placeholder}" required />
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold"
+                                           th:text="#{view.inventory.product.quantity}">Quantity</label>
+                                    <input type="number" min="0" class="form-control"
+                                           th:field="*{quantity}" id="inventoryProductQuantity"
+                                           th:placeholder="#{add.inventory.product.quantity.placeholder}" required />
                                 </div>
                             </div>
-                            <button type="submit" class="btn btn-success" th:text="#{add.inventory.add.product}">Add Product</button>
+                            <div class="mt-3 d-flex gap-2">
+                                <button type="submit" class="btn btn-success"
+                                        th:text="#{add.inventory.add.product}">Save Product</button>
+                                <button type="button" class="btn btn-outline-secondary"
+                                        onclick="document.getElementById('add-inventory-form').reset();
+                                                 document.getElementById('add-inventory-form').action='/products';">
+                                    Clear Form
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
-            </div>
+            </div><!-- /add-inventory tab -->
 
-            <!-- View Inventory Tab -->
+            <!-- =============================================================
+                 VIEW INVENTORY TAB
+                 ============================================================= -->
             <div class="tab-pane fade" id="view-inventory" role="tabpanel" aria-labelledby="view-inventory-tab">
                 <div class="card mt-4">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h2 th:text="#{view.inventory.header}">Current Stock</h2>
-                        <div>
-                            <a href="/api/inventory/export" class="btn btn-success" th:text="#{view.inventory.export}">Export to Excel</a>
-                            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal" th:text="#{view.inventory.import}">
-                                Import from Excel
-                            </button>
+                    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span th:text="#{view.inventory.header}">Current Stock</span>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <input type="text" id="inventory-filter" class="form-control form-control-sm"
+                                   placeholder="Filter by name or ID…" style="max-width:200px;">
+                            <a href="/api/inventory/export" class="btn btn-sm btn-success"
+                               th:text="#{view.inventory.export}">Export to Excel</a>
+                            <button type="button" class="btn btn-sm btn-primary"
+                                    data-bs-toggle="modal" data-bs-target="#importModal"
+                                    th:text="#{view.inventory.import}">Import from Excel</button>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <table class="table table-striped">
-                            <thead>
+                    <div class="card-body p-0">
+                        <table class="table table-hover table-striped mb-0" id="inventory-table">
+                            <thead class="table-light">
                                 <tr>
                                     <th th:text="#{view.inventory.product.id}">ID (Barcode)</th>
                                     <th th:text="#{view.inventory.product.name}">Name</th>
                                     <th th:text="#{view.inventory.product.price}">Price</th>
-                                    <th th:text="#{view.inventory.product.quantity}">Quantity</th>
+                                    <th th:text="#{view.inventory.product.quantity}">Qty</th>
                                     <th th:text="#{view.inventory.actions}">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <tr th:each="p : ${products}">
+                            <tbody id="inventory-tbody">
+                                <!-- Low-stock rows highlighted in amber -->
+                                <tr th:each="p : ${products}"
+                                    th:classappend="${p.quantity <= lowStockThreshold} ? 'table-warning' : ''">
                                     <td th:text="${p.id}"></td>
                                     <td th:text="${p.name}"></td>
                                     <td th:text="'$' + ${#numbers.formatDecimal(p.price, 1, 2)}"></td>
-                                    <td th:text="${p.quantity}"></td>
                                     <td>
-                                        <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#editProductModal" th:attr="data-bs-product-id=${p.id}, data-bs-product-name=${p.name}, data-bs-product-price=${p.price}, data-bs-product-quantity=${p.quantity}" th:text="#{view.inventory.edit}">
-                                            Edit
-                                        </button>
-                                        <form th:action="@{/products/delete}" method="post" class="d-inline">
+                                        <span th:text="${p.quantity}"></span>
+                                        <span th:if="${p.quantity <= lowStockThreshold}"
+                                              class="badge bg-warning text-dark ms-1">Low</span>
+                                        <span th:if="${p.quantity == 0}"
+                                              class="badge bg-danger ms-1">Out</span>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-warning"
+                                                data-bs-toggle="modal" data-bs-target="#editProductModal"
+                                                th:attr="data-bs-product-id=${p.id},
+                                                         data-bs-product-name=${p.name},
+                                                         data-bs-product-price=${p.price},
+                                                         data-bs-product-quantity=${p.quantity}"
+                                                th:text="#{view.inventory.edit}">Edit</button>
+                                        <form th:action="@{/products/delete}" method="post" class="d-inline"
+                                              onsubmit="return confirm('Delete this product?')">
                                             <input type="hidden" name="id" th:value="${p.id}" />
-                                            <button type="submit" class="btn btn-sm btn-danger" th:text="#{view.inventory.delete}">Delete</button>
+                                            <button type="submit" class="btn btn-sm btn-danger"
+                                                    th:text="#{view.inventory.delete}">Delete</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -207,316 +362,420 @@
                         </table>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
+            </div><!-- /view-inventory tab -->
 
-    <!-- Edit Product Modal -->
-    <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
+        </div><!-- /tab-content -->
+    </div><!-- /container -->
+
+    <!-- =================================================================
+         Edit Product Modal
+         ================================================================= -->
+    <div class="modal fade" id="editProductModal" tabindex="-1"
+         aria-labelledby="editProductModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editProductModalLabel" th:text="#{edit.modal.title}">Edit Product</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="editProductModalLabel"
+                        th:text="#{edit.modal.title}">Edit Product</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <form th:action="@{/products/update}" method="post">
                         <input type="hidden" name="id" id="editProductId">
                         <div class="mb-3">
-                            <label for="editProductName" class="form-label" th:text="#{edit.modal.name}">Name</label>
-                            <input type="text" class="form-control" name="name" id="editProductName" required>
+                            <label for="editProductName" class="form-label"
+                                   th:text="#{edit.modal.name}">Name</label>
+                            <input type="text" class="form-control" name="name"
+                                   id="editProductName" required>
                         </div>
                         <div class="mb-3">
-                            <label for="editProductPrice" class="form-label" th:text="#{edit.modal.price}">Price</label>
-                            <input type="number" step="0.01" class="form-control" name="price" id="editProductPrice" required>
+                            <label for="editProductPrice" class="form-label"
+                                   th:text="#{edit.modal.price}">Price</label>
+                            <input type="number" step="0.01" min="0" class="form-control"
+                                   name="price" id="editProductPrice" required>
                         </div>
                         <div class="mb-3">
-                            <label for="editProductQuantity" class="form-label" th:text="#{edit.modal.quantity}">Quantity</label>
-                            <input type="number" class="form-control" name="quantity" id="editProductQuantity" required>
+                            <label for="editProductQuantity" class="form-label"
+                                   th:text="#{edit.modal.quantity}">Quantity</label>
+                            <input type="number" min="0" class="form-control" name="quantity"
+                                   id="editProductQuantity" required>
                         </div>
-                        <button type="submit" class="btn btn-primary" th:text="#{edit.modal.save}">Save Changes</button>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary"
+                                    th:text="#{edit.modal.save}">Save Changes</button>
+                            <button type="button" class="btn btn-secondary"
+                                    data-bs-dismiss="modal">Cancel</button>
+                        </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Import Modal -->
-    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <!-- =================================================================
+         Import Modal
+         ================================================================= -->
+    <div class="modal fade" id="importModal" tabindex="-1"
+         aria-labelledby="importModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="importModalLabel" th:text="#{import.modal.title}">Import Products from Excel</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <h5 class="modal-title" id="importModalLabel"
+                        th:text="#{import.modal.title}">Import Products from Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="import-form" action="/api/inventory/import" method="post" enctype="multipart/form-data">
+                    <p class="text-muted small">
+                        Upload a <code>.xlsx</code> file with columns:
+                        <strong>ID, Name, Price, Quantity</strong>.
+                        Existing products (matched by ID) will be updated; new IDs create new products.
+                    </p>
+                    <form id="import-form" action="/api/inventory/import" method="post"
+                          enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label for="file" class="form-label" th:text="#{import.modal.select.file}">Select Excel File</label>
-                            <input class="form-control" type="file" name="file" id="file" required>
+                            <label for="file" class="form-label"
+                                   th:text="#{import.modal.select.file}">Select Excel File</label>
+                            <input class="form-control" type="file" name="file"
+                                   id="file" accept=".xlsx" required>
                         </div>
-                        <button type="submit" class="btn btn-primary" th:text="#{import.modal.upload}">Upload</button>
+                        <div id="import-progress" class="d-none mb-2">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                     role="progressbar" style="width:100%"></div>
+                            </div>
+                            <small class="text-muted">Importing…</small>
+                        </div>
+                        <button type="submit" class="btn btn-primary"
+                                th:text="#{import.modal.upload}">Upload</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- =================================================================
+         Scripts
+         ================================================================= -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script>
+        // ── Service Worker ────────────────────────────────────────────────────
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js').then(registration => {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                }, err => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(r => console.log('SW registered:', r.scope))
+                    .catch(e => console.warn('SW registration failed:', e));
             });
         }
 
-        // Auto-hide success alert
+        // ── Auto-hide success alert ───────────────────────────────────────────
         const successAlert = document.getElementById('success-alert');
-        if (successAlert) {
-            setTimeout(() => {
-                successAlert.classList.remove('show');
-            }, 5000);
-        }
+        if (successAlert) setTimeout(() => successAlert.classList.remove('show'), 5000);
 
-        // Activate tab from URL hash
+        // ── Activate tab from URL hash (e.g. after redirect) ─────────────────
         const hash = window.location.hash;
         if (hash) {
-            const tab = document.querySelector(`button[data-bs-target="${hash}"]`);
-            if (tab) {
-                new bootstrap.Tab(tab).show();
-            }
+            const tabBtn = document.querySelector(`button[data-bs-target="${hash}"]`);
+            if (tabBtn) new bootstrap.Tab(tabBtn).show();
         }
 
-        // Edit Product Modal
-        const editProductModal = document.getElementById('editProductModal');
-        editProductModal.addEventListener('show.bs.modal', (event) => {
-            const button = event.relatedTarget;
-            const productId = button.getAttribute('data-bs-product-id');
-            const productName = button.getAttribute('data-bs-product-name');
-            const productPrice = button.getAttribute('data-bs-product-price');
-            const productQuantity = button.getAttribute('data-bs-product-quantity');
+        // ── Edit Product Modal ────────────────────────────────────────────────
+        document.getElementById('editProductModal')
+            .addEventListener('show.bs.modal', event => {
+                const btn = event.relatedTarget;
+                document.getElementById('editProductId').value       = btn.dataset.bsProductId;
+                document.getElementById('editProductName').value     = btn.dataset.bsProductName;
+                document.getElementById('editProductPrice').value    = btn.dataset.bsProductPrice;
+                document.getElementById('editProductQuantity').value = btn.dataset.bsProductQuantity;
+            });
 
-            const modalProductId = editProductModal.querySelector('#editProductId');
-            const modalProductName = editProductModal.querySelector('#editProductName');
-            const modalProductPrice = editProductModal.querySelector('#editProductPrice');
-            const modalProductQuantity = editProductModal.querySelector('#editProductQuantity');
-
-            modalProductId.value = productId;
-            modalProductName.value = productName;
-            modalProductPrice.value = productPrice;
-            modalProductQuantity.value = productQuantity;
+        // ── Inventory table live filter ───────────────────────────────────────
+        document.getElementById('inventory-filter').addEventListener('input', function () {
+            const q = this.value.toLowerCase();
+            document.querySelectorAll('#inventory-tbody tr').forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(q) ? '' : 'none';
+            });
         });
 
-        // Unified Barcode Scanner
-        const scannerElement = document.getElementById('scanner-container');
+        // ── Barcode Scanner ───────────────────────────────────────────────────
+        const scannerEl  = document.getElementById('scanner-container');
         const html5QrCode = new Html5Qrcode("scanner-container");
-        let isScanning = false;
+        let isScanning   = false;
+        let scanCooldown = false; // debounce duplicate reads
 
-        const onScanSuccess = (decodedText, decodedResult) => {
-            const activeTabId = document.querySelector('.nav-tabs .active').getAttribute('data-bs-target');
-            if (activeTabId === '#billing') {
-                const form = document.createElement('form');
-                form.method = 'post';
-                form.action = '/billing/add';
+        /**
+         * Shows a temporary feedback banner below the scan button.
+         * @param {string} elementId  ID of the feedback <div>
+         * @param {string} message    Text to display
+         * @param {boolean} success   Green (true) or red (false)
+         */
+        function showFeedback(elementId, message, success) {
+            const el = document.getElementById(elementId);
+            el.textContent = message;
+            el.className = 'alert mb-2 ' + (success ? 'alert-success' : 'alert-danger');
+            clearTimeout(el._hideTimer);
+            el._hideTimer = setTimeout(() => { el.className = 'alert d-none mb-2'; }, 3000);
+        }
 
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'productId';
-                input.value = decodedText;
-                form.appendChild(input);
+        /**
+         * Re-renders the billing table with the latest cart data returned by the
+         * AJAX scan endpoint, then shows/hides the checkout section accordingly.
+         * Also updates the cart-count badge in the card header.
+         *
+         * @param {Array}  items  Array of {name, id, price, quantity, subtotal}
+         * @param {number} total  Grand total value
+         * @param {number} cartCount  Total units in cart (for badge)
+         */
+        function updateBillingTable(items, total, cartCount) {
+            const tbody = document.getElementById('billing-table-body');
+            tbody.innerHTML = '';
+            items.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.className = 'billing-item-row';
+                tr.innerHTML = `
+                    <td>${escHtml(item.name)}</td>
+                    <td class="price" data-price="${item.price}">$${item.price.toFixed(2)}</td>
+                    <td>
+                        <form action="/billing/update" method="post" class="d-flex">
+                            <input type="hidden" name="productId" value="${escHtml(item.id)}" />
+                            <input type="number" name="quantity" value="${item.quantity}"
+                                   class="form-control quantity-input" style="width:80px;" min="0" />
+                            <button type="submit" class="btn btn-sm btn-outline-primary ms-2">Update</button>
+                        </form>
+                    </td>
+                    <td class="subtotal">$${item.subtotal.toFixed(2)}</td>
+                    <td>
+                        <form action="/billing/update" method="post">
+                            <input type="hidden" name="productId" value="${escHtml(item.id)}" />
+                            <input type="hidden" name="quantity" value="0" />
+                            <button type="submit" class="btn btn-sm btn-outline-danger">✕</button>
+                        </form>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
 
-                document.body.appendChild(form);
-                form.submit();
-            } else if (activeTabId === '#add-inventory') {
-                const inventoryProductIdInput = document.getElementById('inventoryProductId');
-                inventoryProductIdInput.value = decodedText;
-                inventoryProductIdInput.dispatchEvent(new Event('input', { bubbles: true }));
+            // Update grand total
+            const grandTotalEl = document.getElementById('grand-total');
+            if (grandTotalEl) grandTotalEl.textContent = '$' + total.toFixed(2);
+
+            // Show / hide checkout section
+            const checkoutSection = document.getElementById('billing-checkout-section');
+            if (checkoutSection) checkoutSection.style.display = items.length > 0 ? '' : 'none';
+
+            // Show / hide table vs empty-cart message
+            const table   = document.getElementById('billing-table');
+            const emptyMsg = document.getElementById('empty-cart-msg');
+            if (table)    table.classList.toggle('d-none', items.length === 0);
+            if (emptyMsg) emptyMsg.style.display = items.length === 0 ? '' : 'none';
+
+            // Cart count badge
+            const badge = document.getElementById('cart-count-badge');
+            if (badge) badge.textContent = (cartCount || 0) + ' item' + (cartCount !== 1 ? 's' : '');
+        }
+
+        /** Escapes HTML special chars to prevent XSS when building innerHTML. */
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        /**
+         * Callback fired on every successful barcode/QR decode.
+         * - Billing tab  → AJAX POST to /billing/add-scan; table updated in-place.
+         * - Add Inventory tab → fills the barcode ID field and triggers auto-populate.
+         * Scanning is NOT stopped; it continues until the operator clicks Stop.
+         */
+        const onScanSuccess = decodedText => {
+            if (scanCooldown) return;
+            scanCooldown = true;
+            setTimeout(() => { scanCooldown = false; }, 1500);
+
+            const activeTab = document.querySelector('.nav-tabs .active').getAttribute('data-bs-target');
+
+            if (activeTab === '#billing') {
+                const fd = new FormData();
+                fd.append('productId', decodedText);
+                fetch('/billing/add-scan', { method: 'POST', body: fd })
+                    .then(r => r.json())
+                    .then(data => {
+                        showFeedback('billing-scan-feedback', data.message, data.success);
+                        if (data.success) updateBillingTable(data.items, data.total, data.cartCount);
+                    })
+                    .catch(() => showFeedback('billing-scan-feedback', 'Server error – please try again.', false));
+
+            } else if (activeTab === '#add-inventory') {
+                const idInput = document.getElementById('inventoryProductId');
+                idInput.value = decodedText;
+                idInput.dispatchEvent(new Event('input', { bubbles: true }));
+                showFeedback('inventory-scan-feedback',
+                    `Barcode scanned: ${decodedText} — complete the form and save.`, true);
             }
-            stopScanning();
         };
 
-        const onScanFailure = (error) => {
-            console.warn(`Code scan error = ${error}`);
-        };
-
-        function startScanning(placeholderId, button) {
-            const placeholder = document.getElementById(placeholderId);
-            placeholder.appendChild(scannerElement);
-            scannerElement.style.display = 'block';
-
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess, onScanFailure);
+        function startScanning(placeholderId, btn) {
+            document.getElementById(placeholderId).appendChild(scannerEl);
+            scannerEl.style.display = 'block';
+            html5QrCode.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 260, height: 260 } },
+                onScanSuccess,
+                () => { /* ignore transient failures */ }
+            );
             isScanning = true;
-            button.textContent = "Stop Scanning";
+            btn.textContent = 'Stop Scanning';
+            btn.classList.replace('btn-primary', 'btn-danger');
         }
 
         function stopScanning() {
-            if (isScanning) {
-                html5QrCode.stop().then(() => {
-                    scannerElement.style.display = 'none';
-                    isScanning = false;
-                    document.getElementById('billing-scan-button').textContent = "Start Scanning";
-                    document.getElementById('inventory-scan-button').textContent = "Start Scanning";
+            if (!isScanning) return;
+            html5QrCode.stop().then(() => {
+                scannerEl.style.display = 'none';
+                isScanning = false;
+                ['billing-scan-button', 'inventory-scan-button'].forEach(id => {
+                    const b = document.getElementById(id);
+                    if (b) { b.textContent = 'Start Scanning'; b.classList.replace('btn-danger', 'btn-primary'); }
                 });
-            }
+            });
         }
 
-        document.getElementById('billing-scan-button').addEventListener('click', () => {
-            if (!isScanning) {
-                startScanning('billing-scanner-placeholder', document.getElementById('billing-scan-button'));
-            } else {
-                stopScanning();
-            }
-        });
+        document.getElementById('billing-scan-button').addEventListener('click', () =>
+            isScanning ? stopScanning()
+                       : startScanning('billing-scanner-placeholder',
+                                       document.getElementById('billing-scan-button')));
 
-        document.getElementById('inventory-scan-button').addEventListener('click', () => {
-            if (!isScanning) {
-                startScanning('inventory-scanner-placeholder', document.getElementById('inventory-scan-button'));
-            } else {
-                stopScanning();
-            }
-        });
+        document.getElementById('inventory-scan-button').addEventListener('click', () =>
+            isScanning ? stopScanning()
+                       : startScanning('inventory-scanner-placeholder',
+                                       document.getElementById('inventory-scan-button')));
 
-        // Excel Import
-        const importForm = document.getElementById("import-form");
-        importForm.addEventListener("submit", (event) => {
+        // ── Excel Import (AJAX) ───────────────────────────────────────────────
+        document.getElementById('import-form').addEventListener('submit', event => {
             event.preventDefault();
-            const formData = new FormData(importForm);
-            fetch("/api/inventory/import", {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.text())
-            .then(text => {
-                alert(text);
-                window.location.reload();
-            })
-            .catch(error => {
-                alert("Error importing file: " + error);
-            });
+            const progress = document.getElementById('import-progress');
+            progress.classList.remove('d-none');
+            fetch('/api/inventory/import', { method: 'POST', body: new FormData(event.target) })
+                .then(r => r.text())
+                .then(msg => { alert(msg); window.location.reload(); })
+                .catch(err => { alert('Import error: ' + err); })
+                .finally(() => progress.classList.add('d-none'));
         });
 
-        // Automatic Subtotal Update
-        const billingTableBody = document.getElementById('billing-table-body');
-        billingTableBody.addEventListener('input', (event) => {
-            if (event.target.classList.contains('quantity-input')) {
-                const row = event.target.closest('.billing-item-row');
-                const price = parseFloat(row.querySelector('.price').dataset.price);
-                const quantity = parseInt(event.target.value);
-                const subtotal = price * quantity;
-                row.querySelector('.subtotal').textContent = '$' + subtotal.toFixed(2);
-                updateGrandTotal();
-            }
+        // ── Live Subtotal Update (manual quantity edit) ───────────────────────
+        document.getElementById('billing-table-body').addEventListener('input', event => {
+            if (!event.target.classList.contains('quantity-input')) return;
+            const row   = event.target.closest('.billing-item-row');
+            const price = parseFloat(row.querySelector('.price').dataset.price);
+            const qty   = parseInt(event.target.value) || 0;
+            row.querySelector('.subtotal').textContent = '$' + (price * qty).toFixed(2);
+            // Recompute grand total from DOM
+            let gt = 0;
+            document.querySelectorAll('.billing-item-row .subtotal')
+                .forEach(cell => gt += parseFloat(cell.textContent.replace('$', '')));
+            document.getElementById('grand-total').textContent = '$' + gt.toFixed(2);
         });
 
-        function updateGrandTotal() {
-            let grandTotal = 0;
-            document.querySelectorAll('.billing-item-row').forEach(row => {
-                const subtotalText = row.querySelector('.subtotal').textContent;
-                grandTotal += parseFloat(subtotalText.replace('$', ''));
-            });
-            document.getElementById('grand-total').textContent = '$' + grandTotal.toFixed(2);
-        }
-
-        // Product Search
-        const searchInput = document.getElementById('product-search');
+        // ── Product Search Autocomplete ───────────────────────────────────────
+        const searchInput   = document.getElementById('product-search');
         const searchResults = document.getElementById('search-results');
+        let searchTimer;
 
         searchInput.addEventListener('input', () => {
-            const query = searchInput.value;
-            if (query.length < 2) {
-                searchResults.innerHTML = '';
-                return;
-            }
-
-            fetch(`/api/inventory/search?query=${query}`)
-                .then(response => response.json())
-                .then(products => {
-                    let html = '';
-                    products.forEach(product => {
-                        html += `<a href="#" class="list-group-item list-group-item-action" data-product-id="${product.id}">${product.name}</a>`;
+            clearTimeout(searchTimer);
+            const q = searchInput.value.trim();
+            if (q.length < 2) { searchResults.innerHTML = ''; return; }
+            searchTimer = setTimeout(() => {
+                fetch(`/api/inventory/search?query=${encodeURIComponent(q)}`)
+                    .then(r => r.json())
+                    .then(products => {
+                        searchResults.innerHTML = products.length
+                            ? products.map(p =>
+                                `<a href="#" class="list-group-item list-group-item-action d-flex justify-content-between"
+                                    data-product-id="${escHtml(p.id)}">
+                                    <span>${escHtml(p.name)}</span>
+                                    <small class="text-muted">$${p.price.toFixed(2)} · qty ${p.quantity}</small>
+                                 </a>`).join('')
+                            : '<div class="list-group-item text-muted">No products found</div>';
                     });
-                    searchResults.innerHTML = html;
+            }, 250); // debounce 250 ms
+        });
+
+        // Click a search result → add to bill via AJAX (same as scan)
+        searchResults.addEventListener('click', event => {
+            const item = event.target.closest('[data-product-id]');
+            if (!item) return;
+            event.preventDefault();
+            searchResults.innerHTML = '';
+            searchInput.value = '';
+            const fd = new FormData();
+            fd.append('productId', item.dataset.productId);
+            fetch('/billing/add-scan', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    showFeedback('billing-scan-feedback', data.message, data.success);
+                    if (data.success) updateBillingTable(data.items, data.total, data.cartCount);
+                })
+                .catch(() => showFeedback('billing-scan-feedback', 'Server error', false));
+        });
+
+        // Close search results when clicking outside
+        document.addEventListener('click', e => {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target))
+                searchResults.innerHTML = '';
+        });
+
+        // ── Add Inventory Auto-Populate ───────────────────────────────────────
+        const invIdInput   = document.getElementById('inventoryProductId');
+        const invForm      = document.getElementById('add-inventory-form');
+
+        invIdInput.addEventListener('input', () => {
+            const id = invIdInput.value.trim();
+            if (!id) return;
+            fetch(`/api/inventory/${encodeURIComponent(id)}`)
+                .then(r => {
+                    if (r.ok) return r.json();
+                    // New product → reset form action and clear fields
+                    invForm.action = '/products';
+                    ['inventoryProductName','inventoryProductPrice','inventoryProductQuantity']
+                        .forEach(fId => document.getElementById(fId).value = '');
+                    return null;
+                })
+                .then(product => {
+                    if (!product) return;
+                    // Existing product → switch to update mode and pre-fill
+                    invForm.action = '/products/update';
+                    document.getElementById('inventoryProductName').value     = product.name;
+                    document.getElementById('inventoryProductPrice').value    = product.price;
+                    document.getElementById('inventoryProductQuantity').value = product.quantity;
+                    showFeedback('inventory-scan-feedback',
+                        `Existing product loaded: "${product.name}" — modify and save to update.`, true);
                 });
         });
 
-        searchResults.addEventListener('click', (event) => {
-            if (event.target.classList.contains('list-group-item')) {
-                const productId = event.target.dataset.productId;
-                const form = document.createElement('form');
-                form.method = 'post';
-                form.action = '/billing/add';
-
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'productId';
-                input.value = productId;
-                form.appendChild(input);
-
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-
-        // Add Inventory Auto-populate
-        const inventoryProductIdInput = document.getElementById('inventoryProductId');
-        const addInventoryForm = document.getElementById('add-inventory-form');
-
-        inventoryProductIdInput.addEventListener('input', () => {
-            const productId = inventoryProductIdInput.value;
-            if (productId) {
-                fetch(`/api/inventory/${productId}`)
-                    .then(response => {
-                        if (response.ok) {
-                            return response.json();
-                        } else {
-                            addInventoryForm.action = '/products';
-                            document.getElementById('inventoryProductName').value = '';
-                            document.getElementById('inventoryProductPrice').value = '';
-                            document.getElementById('inventoryProductQuantity').value = '';
-                        }
-                    })
-                    .then(product => {
-                        if (product) {
-                            alert('Product already exists. Editing existing product.');
-                            addInventoryForm.action = '/products/update';
-                            document.getElementById('inventoryProductName').value = product.name;
-                            document.getElementById('inventoryProductPrice').value = product.price;
-                            document.getElementById('inventoryProductQuantity').value = product.quantity;
-                        }
-                    });
-            }
-        });
-
-        // Date, Time, and Location
-        function updateTime() {
+        // ── Date / Time / Location ────────────────────────────────────────────
+        function updateClock() {
             const now = new Date();
             document.getElementById('current-date').textContent = now.toLocaleDateString();
             document.getElementById('current-time').textContent = now.toLocaleTimeString();
         }
-        updateTime();
-        setInterval(updateTime, 1000);
+        updateClock();
+        setInterval(updateClock, 1000);
 
-        function updateLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
-                    const locationString = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                    document.getElementById('current-location').textContent = locationString;
-                    document.getElementById('location-input').value = locationString;
-                }, () => {
-                    document.getElementById('current-location').textContent = 'Unavailable';
-                });
-            } else {
-                document.getElementById('current-location').textContent = 'Not supported';
-            }
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                const loc = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+                document.getElementById('current-location').textContent = loc;
+                const locInput = document.getElementById('location-input');
+                if (locInput) locInput.value = loc;
+            }, () => {
+                document.getElementById('current-location').textContent = 'Unavailable';
+            });
+        } else {
+            document.getElementById('current-location').textContent = 'Not supported';
         }
-        updateLocation();
     </script>
 </body>
 </html>

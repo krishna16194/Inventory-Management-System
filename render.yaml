@@ -1,22 +1,46 @@
+# =============================================================================
+# render.yaml – Render deployment configuration
+#
+# Defines the web service and the managed PostgreSQL database for the
+# Inventory Management System on the Render platform (https://render.com).
+#
+# Documentation: https://render.com/docs/blueprint-spec
+# =============================================================================
+
 services:
   - type: web
     name: inventory-app
-    env: docker
-    plan: free
-    region: frankfurt
-    branch: master
+    env: docker                    # Use the Dockerfile at the repo root
+    plan: free                     # Render free tier (spins down after inactivity)
+    region: frankfurt              # EU region – change to match your users
+    branch: master                 # Deploy on every push to this branch
     dockerfilePath: ./Dockerfile
+
     envVars:
+      # Activate the 'render' Spring profile, which:
+      #   - disables the H2 console
+      #   - keeps spring.jpa.hibernate.ddl-auto=update for schema migrations
       - key: SPRING_PROFILES_ACTIVE
         value: render
+
+      # Render injects the PostgreSQL connection string here automatically.
+      # DatabaseUrlEnvironmentPostProcessor converts it to JDBC datasource
+      # properties before the Spring context starts.
       - key: DATABASE_URL
         fromDatabase:
           name: inventory-db
           property: connectionString
+
+      # Ensure the schema is updated (not recreated) on each deployment.
       - key: SPRING_JPA_HIBERNATE_DDL_AUTO
         value: update
 
+# =============================================================================
+# Managed PostgreSQL database
+# Render provisions this database and links it to the web service above via
+# the DATABASE_URL env var.
+# =============================================================================
 databases:
   - name: inventory-db
     plan: free
-    region: frankfurt
+    region: frankfurt              # Must match the web service region

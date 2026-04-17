@@ -7,10 +7,17 @@
     <link rel="stylesheet" th:href="@{/css/custom.css}" />
 </head>
 <body>
+    <!-- ===================================================================
+         Navigation
+         =================================================================== -->
     <nav class="navbar navbar-expand-lg">
         <div class="container">
             <a class="navbar-brand" href="#" th:text="#{nav.brand}">Inventory System</a>
-            <div class="collapse navbar-collapse">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#navbarNav" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
                         <a class="nav-link" th:href="@{/stats-dashboard}">Stats Dashboard</a>
@@ -24,46 +31,117 @@
                 </ul>
                 <div class="d-flex">
                     <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button" id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn btn-secondary dropdown-toggle" type="button"
+                                id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                             Language
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="languageDropdown">
-                            <li><a class="dropdown-item" href="?lang=en">English</a></li>
-                            <li><a class="dropdown-item" href="?lang=ta">தமிழ்</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
+                            <li><a class="dropdown-item" href="?lang=en">🇬🇧 English</a></li>
+                            <li><a class="dropdown-item" href="?lang=ta">🇮🇳 தமிழ்</a></li>
                         </ul>
                     </div>
                 </div>
             </div>
-        </nav>
+        </div>
+    </nav>
 
     <div class="container">
-        <div class="d-flex justify-content-between align-items-center mt-4">
-            <h2>Bill History</h2>
-            <a href="javascript:history.back()" class="btn btn-secondary">Back</a>
+        <div class="d-flex justify-content-between align-items-center mt-4 flex-wrap gap-2">
+            <h2>📋 Bill History</h2>
+            <a th:href="@{/dashboard}" class="btn btn-outline-secondary">← Back to Dashboard</a>
         </div>
+
+        <!-- ================================================================
+             Filter Card
+             ================================================================ -->
         <div class="card mt-4">
+            <div class="card-header fw-semibold">Filter Bills</div>
             <div class="card-body">
-                <table class="table table-striped">
-                    <thead>
+                <form th:action="@{/bill-history}" method="get">
+                    <div class="row g-3 align-items-end">
+                        <!-- Date range -->
+                        <div class="col-md-3">
+                            <label for="startDate" class="form-label">From Date</label>
+                            <input type="date" class="form-control" id="startDate"
+                                   name="startDate" th:value="${startDate}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="endDate" class="form-label">To Date</label>
+                            <input type="date" class="form-control" id="endDate"
+                                   name="endDate" th:value="${endDate}">
+                        </div>
+                        <!-- Customer name search -->
+                        <div class="col-md-4">
+                            <label for="customerName" class="form-label">Customer Name</label>
+                            <input type="text" class="form-control" id="customerName"
+                                   name="customerName" th:value="${customerName}"
+                                   placeholder="Partial name search…">
+                        </div>
+                        <div class="col-md-2 d-flex gap-2">
+                            <button type="submit" class="btn btn-primary w-100">Filter</button>
+                            <a th:href="@{/bill-history}" class="btn btn-outline-secondary w-100">Reset</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================================================================
+             Results Card
+             ================================================================ -->
+        <div class="card mt-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Results</span>
+                <span class="badge bg-secondary" th:text="${#lists.size(bills)} + ' bill(s)'">0 bill(s)</span>
+            </div>
+            <div class="card-body p-0">
+                <!-- Empty state -->
+                <div th:if="${#lists.isEmpty(bills)}" class="text-center text-muted py-5">
+                    <span style="font-size:2.5rem;">🗂️</span>
+                    <p class="mt-2">No bills found for the selected filters.</p>
+                </div>
+
+                <table th:unless="${#lists.isEmpty(bills)}"
+                       class="table table-hover table-striped mb-0">
+                    <thead class="table-light">
                         <tr>
                             <th>Bill ID</th>
-                            <th>Date</th>
+                            <th>Date &amp; Time</th>
                             <th>Customer Name</th>
+                            <th>Customer Number</th>
                             <th>Total Amount</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr th:each="bill : ${bills}">
-                            <td th:text="${bill.id}"></td>
-                            <td th:text="${#temporals.format(bill.transactionTime, 'yyyy-MM-dd HH:mm:ss')}"></td>
-                            <td th:text="${bill.customerName}"></td>
-                            <td th:text="'$' + ${#numbers.formatDecimal(bill.totalAmount, 1, 2)}"></td>
                             <td>
-                                <a th:href="@{/billing/receipt/{id}(id=${bill.id})}" class="btn btn-sm btn-primary">View Receipt</a>
+                                <span class="badge bg-light text-dark border"
+                                      th:text="'#' + ${bill.id}"></span>
+                            </td>
+                            <td th:text="${#temporals.format(bill.transactionTime, 'dd MMM yyyy, HH:mm')}"></td>
+                            <td th:text="${bill.customerName}"></td>
+                            <td th:text="${bill.customerNumber}"></td>
+                            <td>
+                                <span class="fw-bold text-success"
+                                      th:text="'$' + ${#numbers.formatDecimal(bill.totalAmount, 1, 2)}"></span>
+                            </td>
+                            <td>
+                                <a th:href="@{/billing/receipt/{id}(id=${bill.id})}"
+                                   class="btn btn-sm btn-primary">View Receipt</a>
                             </td>
                         </tr>
                     </tbody>
+                    <!-- Summary footer row -->
+                    <tfoot class="table-secondary fw-bold">
+                        <tr>
+                            <td colspan="4" class="text-end">Period Total:</td>
+                            <td class="text-success"
+                                th:text="'$' + ${#numbers.formatDecimal(#aggregates.sum(bills.![totalAmount]), 1, 2)}">
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>

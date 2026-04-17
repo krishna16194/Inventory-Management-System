@@ -6,59 +6,137 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" th:href="@{/css/custom.css}" />
     <style>
+        /* ── Print styles ─────────────────────────────────────────────────── */
         @media print {
-            .no-print {
-                display: none;
-            }
+            .no-print { display: none !important; }
+            body { background: white; }
+            .card { box-shadow: none !important; border: 1px solid #dee2e6 !important; }
+        }
+
+        /* ── Receipt header branding ──────────────────────────────────────── */
+        .receipt-brand {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
+        .receipt-divider {
+            border-top: 2px dashed #dee2e6;
+            margin: 1rem 0;
         }
     </style>
 </head>
 <body>
-    <div class="container mt-4">
+    <!-- No-print nav bar -->
+    <nav class="navbar navbar-expand-lg no-print">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/dashboard}">Inventory System</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4" style="max-width:720px;">
         <div class="card">
-            <div class="card-header">
-                <h2>Receipt</h2>
+            <!-- ================================================================
+                 Receipt Header
+                 ================================================================ -->
+            <div class="card-header text-center py-4">
+                <div class="receipt-brand">🧾 Sales Receipt</div>
+                <div class="text-muted small mt-1">
+                    <span th:text="${#temporals.format(bill.transactionTime, 'EEEE, dd MMMM yyyy  HH:mm:ss')}"></span>
+                </div>
             </div>
+
             <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Bill ID:</strong> <span th:text="${bill.id}"></span></p>
-                        <p><strong>Transaction Time:</strong> <span th:text="${#temporals.format(bill.transactionTime, 'yyyy-MM-dd HH:mm:ss')}"></span></p>
-                        <p><strong>Location:</strong> <span th:text="${bill.location}"></span></p>
+                <!-- ============================================================
+                     Bill & Customer Info
+                     ============================================================ -->
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <h6 class="text-muted text-uppercase small mb-2">Bill Information</h6>
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <th class="text-muted fw-normal" style="width:45%">Bill #</th>
+                                <td class="fw-semibold" th:text="${bill.id}"></td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted fw-normal">Date</th>
+                                <td th:text="${#temporals.format(bill.transactionTime, 'dd MMM yyyy')}"></td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted fw-normal">Time</th>
+                                <td th:text="${#temporals.format(bill.transactionTime, 'HH:mm:ss')}"></td>
+                            </tr>
+                            <tr th:if="${bill.location != null and !bill.location.isEmpty()}">
+                                <th class="text-muted fw-normal">Location</th>
+                                <td th:text="${bill.location}" class="small"></td>
+                            </tr>
+                        </table>
                     </div>
-                    <div class="col-md-6">
-                        <p><strong>Customer Name:</strong> <span th:text="${bill.customerName}"></span></p>
-                        <p><strong>Customer Number:</strong> <span th:text="${bill.customerNumber}"></span></p>
+                    <div class="col-sm-6">
+                        <h6 class="text-muted text-uppercase small mb-2">Customer</h6>
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <th class="text-muted fw-normal" style="width:45%">Name</th>
+                                <td class="fw-semibold" th:text="${bill.customerName}"></td>
+                            </tr>
+                            <tr>
+                                <th class="text-muted fw-normal">Phone</th>
+                                <td th:text="${bill.customerNumber}"></td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
-                <hr/>
-                <table class="table table-striped">
-                    <thead>
+
+                <div class="receipt-divider"></div>
+
+                <!-- ============================================================
+                     Line Items
+                     ============================================================ -->
+                <h6 class="text-muted text-uppercase small mb-2">Items Purchased</h6>
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
                         <tr>
-                            <th>Product Name</th>
-                            <th>Price at Sale</th>
-                            <th>Quantity</th>
-                            <th>Subtotal</th>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-center">Qty</th>
+                            <th class="text-end">Subtotal</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr th:each="item : ${bill.billItems}">
+                        <tr th:each="item, stat : ${bill.billItems}">
+                            <td class="text-muted" th:text="${stat.count}"></td>
                             <td th:text="${item.product.name}"></td>
-                            <td th:text="'$' + ${#numbers.formatDecimal(item.priceAtSale, 1, 2)}"></td>
-                            <td th:text="${item.quantity}"></td>
-                            <td th:text="'$' + ${#numbers.formatDecimal(item.priceAtSale * item.quantity, 1, 2)}"></td>
+                            <td class="text-end"
+                                th:text="'$' + ${#numbers.formatDecimal(item.priceAtSale, 1, 2)}"></td>
+                            <td class="text-center" th:text="${item.quantity}"></td>
+                            <td class="text-end fw-semibold"
+                                th:text="'$' + ${#numbers.formatDecimal(item.priceAtSale * item.quantity, 1, 2)}"></td>
                         </tr>
                     </tbody>
+                    <tfoot>
+                        <tr class="table-light">
+                            <td colspan="4" class="text-end fw-bold fs-5">Total</td>
+                            <td class="text-end fw-bold fs-5 text-success"
+                                th:text="'$' + ${#numbers.formatDecimal(bill.totalAmount, 1, 2)}"></td>
+                        </tr>
+                    </tfoot>
                 </table>
-                <div class="d-flex justify-content-end">
-                    <h3>Total: <span class="text-success" th:text="'$' + ${#numbers.formatDecimal(bill.totalAmount, 1, 2)}"></span></h3>
-                </div>
+
+                <div class="receipt-divider"></div>
+
+                <!-- Thank-you note -->
+                <p class="text-center text-muted mb-0">Thank you for your purchase! 🙏</p>
             </div>
         </div>
-        <div class="mt-3 no-print">
-            <a href="/bill-history" class="btn btn-secondary">Back to Bill History</a>
-            <button onclick="window.print()" class="btn btn-primary">Print Receipt</button>
+
+        <!-- Action Buttons (hidden on print) -->
+        <div class="d-flex gap-2 justify-content-end mt-3 no-print">
+            <a th:href="@{/bill-history}" class="btn btn-outline-secondary">← Bill History</a>
+            <a th:href="@{/dashboard}" class="btn btn-outline-primary">Dashboard</a>
+            <button onclick="window.print()" class="btn btn-success">🖨 Print Receipt</button>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

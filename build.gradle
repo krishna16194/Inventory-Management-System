@@ -1,10 +1,23 @@
+// =============================================================================
+// build.gradle – Inventory Management System
+//
+// Build tool : Gradle (wrapper included – use ./gradlew or gradlew.bat)
+// Java       : 21 (Eclipse Temurin recommended)
+//
+// Common tasks
+//   ./gradlew bootRun        – run locally on http://localhost:8080
+//   ./gradlew bootJar        – produce executable JAR in build/libs/
+//   ./gradlew test           – run unit tests
+//   ./gradlew clean bootJar  – clean build (used in Dockerfile)
+// =============================================================================
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.5'
     id 'io.spring.dependency-management' version '1.1.5'
 }
 
-group = 'com.kr.bill'
+group   = 'com.kr.bill'
 version = '0.0.1-SNAPSHOT'
 description = 'InventoryMangementSystem'
 
@@ -19,23 +32,34 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.boot:spring-boot-starter-security'
-    implementation 'org.springframework.boot:spring-boot-starter-validation'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
-    implementation 'org.apache.poi:poi:5.2.3'
-    implementation 'org.apache.poi:poi-ooxml:5.2.3'
-    runtimeOnly 'com.h2database:h2'
-    runtimeOnly 'org.postgresql:postgresql'
-    compileOnly 'org.projectlombok:lombok'
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+    // ── Core Spring Boot starters ─────────────────────────────────────────
+    implementation 'org.springframework.boot:spring-boot-starter-web'           // Embedded Tomcat + Spring MVC
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'     // Server-side HTML templating
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'      // Spring Data JPA + Hibernate
+    implementation 'org.springframework.boot:spring-boot-starter-security'      // Spring Security (auth disabled)
+    implementation 'org.springframework.boot:spring-boot-starter-validation'    // Bean Validation (JSR-380)
+
+    // ── API documentation ─────────────────────────────────────────────────
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'   // Swagger UI at /swagger-ui/index.html
+
+    // ── Excel support ─────────────────────────────────────────────────────
+    implementation 'org.apache.poi:poi:5.2.3'                                   // Core Apache POI (XLS)
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'                             // OOXML support (XLSX)
+
+    // ── Databases ─────────────────────────────────────────────────────────
+    runtimeOnly 'com.h2database:h2'                                             // H2 embedded DB (local dev)
+    runtimeOnly 'org.postgresql:postgresql'                                     // PostgreSQL driver (Render / prod)
+
+    // ── Developer tooling ─────────────────────────────────────────────────
+    compileOnly      'org.projectlombok:lombok'                                 // @Data, @Builder etc. (compile-time)
     annotationProcessor 'org.projectlombok:lombok'
-    testImplementation 'org.springframework.boot:spring-boot-starter-test'
-    testCompileOnly 'org.projectlombok:lombok'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    developmentOnly  'org.springframework.boot:spring-boot-devtools'            // Live reload in dev
+
+    // ── Testing ───────────────────────────────────────────────────────────
+    testImplementation    'org.springframework.boot:spring-boot-starter-test'
+    testCompileOnly       'org.projectlombok:lombok'
     testAnnotationProcessor 'org.projectlombok:lombok'
+    testRuntimeOnly       'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.named('test') {

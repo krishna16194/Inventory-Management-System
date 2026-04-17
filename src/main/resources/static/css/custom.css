@@ -1,68 +1,102 @@
-/* --- Base Styles & Variables --- */
+/* ============================================================
+   custom.css – Inventory Management System
+   Styles the dashboard, scanner, billing table, receipts,
+   and stats dashboard. Bootstrap 5.3 is loaded separately.
+   ============================================================ */
+
+/* ── CSS Variables ─────────────────────────────────────────── */
 :root {
-    --primary-color: #007bff;
-    --secondary-color: #6c757d;
-    --success-color: #28a745;
-    --danger-color: #dc3545;
-    --info-color: #17a2b8;
-    --background-color: #f8f9fa;
-    --card-background: #ffffff;
-    --text-color: #212529;
-    --header-color: #343a40;
-    --border-color: #dee2e6;
-    --shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    --border-radius: 0.5rem;
+    --primary-color:    #007bff;
+    --secondary-color:  #6c757d;
+    --success-color:    #28a745;
+    --danger-color:     #dc3545;
+    --warning-color:    #ffc107;
+    --info-color:       #17a2b8;
+    --background-color: #f0f2f5;
+    --card-background:  #ffffff;
+    --text-color:       #212529;
+    --header-color:     #343a40;
+    --border-color:     #dee2e6;
+    --shadow:           0 0.25rem 0.75rem rgba(0, 0, 0, 0.10);
+    --shadow-hover:     0 0.5rem 1.25rem rgba(0, 0, 0, 0.15);
+    --border-radius:    0.5rem;
+    --transition:       0.2s ease-in-out;
 }
 
+/* ── Base ──────────────────────────────────────────────────── */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                 "Helvetica Neue", Arial, sans-serif;
     background-color: var(--background-color);
     color: var(--text-color);
 }
 
 .container {
-    padding: 20px;
-    max-width: 1200px;
+    padding: 0 20px 40px;
+    max-width: 1280px;
     margin: 0 auto;
 }
 
-/* --- Navigation --- */
+/* ── Navigation Bar ────────────────────────────────────────── */
 .navbar {
     background-color: var(--card-background) !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    padding: 1rem 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    padding: 0.75rem 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1030;
 }
 
 .navbar-brand {
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 1.2rem;
     color: var(--primary-color) !important;
 }
 
-/* --- Header & Info Bar --- */
+.nav-link {
+    transition: color var(--transition);
+}
+
+.nav-link:hover {
+    color: var(--primary-color) !important;
+}
+
+/* ── Info Bar (date / time / location / today's stats) ─────── */
 .info-bar {
     display: flex;
     justify-content: space-between;
-    padding: 10px 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 20px;
     background-color: var(--card-background);
     border-radius: var(--border-radius);
-    margin-top: 20px;
     box-shadow: var(--shadow);
-    font-size: 0.9rem;
+    font-size: 0.875rem;
     color: #555;
-    flex-wrap: wrap;
 }
 
-/* --- Tabs --- */
+/* ── Tabs ──────────────────────────────────────────────────── */
 .nav-tabs {
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--border-color);
+    flex-wrap: nowrap;
+    overflow-x: auto;
 }
 
 .nav-tabs .nav-link {
     border: none;
-    color: #6c757d;
+    color: var(--secondary-color);
     font-weight: 500;
-    padding: 1rem 1.5rem;
-    transition: color 0.2s ease-in-out;
+    padding: 0.85rem 1.4rem;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+    transition: color var(--transition), border-color var(--transition);
+    background-color: transparent;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--primary-color);
+    border-bottom-color: rgba(0, 123, 255, 0.35);
 }
 
 .nav-tabs .nav-link.active {
@@ -72,64 +106,177 @@ body {
 }
 
 .tab-content {
-    padding-top: 20px;
+    padding-top: 8px;
 }
 
-/* --- Cards & Forms --- */
+/* ── Cards ─────────────────────────────────────────────────── */
 .card {
     border: none;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow);
+    transition: box-shadow var(--transition);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-hover);
 }
 
 .card-header {
     background-color: transparent;
     border-bottom: 1px solid var(--border-color);
-    padding: 1.5rem;
-    font-size: 1.25rem;
+    padding: 1rem 1.25rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--header-color);
 }
 
-.form-control, .btn {
+/* ── Forms & Buttons ───────────────────────────────────────── */
+.form-control,
+.form-select,
+.btn {
     border-radius: var(--border-radius);
-    padding: 0.75rem 1rem;
+}
+
+.form-control {
+    transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
 }
 
 .btn {
-    transition: all 0.2s ease-in-out;
+    transition: transform var(--transition), box-shadow var(--transition);
 }
 
 .btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
 }
 
-/* --- Responsive Design --- */
+.btn:active {
+    transform: translateY(0);
+}
+
+/* ── Barcode Scanner ───────────────────────────────────────── */
+#scanner-container {
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    border: 2px dashed var(--primary-color);
+    background: #000;
+}
+
+/* Pulsing border when scanning is active */
+#scanner-container.scanning-active {
+    animation: scanPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes scanPulse {
+    0%, 100% { border-color: var(--primary-color); }
+    50%       { border-color: var(--success-color); }
+}
+
+/* ── Billing Table ─────────────────────────────────────────── */
+#billing-table tbody tr.billing-item-row {
+    transition: background-color var(--transition);
+}
+
+/* Newly-scanned row highlight – added/removed by JS */
+.row-highlight {
+    animation: rowFlash 0.7s ease-out;
+}
+
+@keyframes rowFlash {
+    from { background-color: rgba(40, 167, 69, 0.25); }
+    to   { background-color: transparent; }
+}
+
+/* ── Search Autocomplete Dropdown ──────────────────────────── */
+#search-results {
+    max-height: 260px;
+    overflow-y: auto;
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    box-shadow: var(--shadow-hover);
+}
+
+#search-results .list-group-item:hover {
+    background-color: #e8f4ff;
+    cursor: pointer;
+}
+
+/* ── Scan Feedback Banners ─────────────────────────────────── */
+#billing-scan-feedback,
+#inventory-scan-feedback {
+    border-radius: var(--border-radius);
+    font-size: 0.9rem;
+    transition: opacity var(--transition);
+}
+
+/* ── View Inventory – Low-stock row tones ──────────────────── */
+.table-warning td {
+    background-color: rgba(255, 193, 7, 0.12) !important;
+}
+
+.table-danger td {
+    background-color: rgba(220, 53, 69, 0.12) !important;
+}
+
+/* ── Stats Dashboard – KPI Cards ───────────────────────────── */
+.card.bg-primary .card-title,
+.card.bg-success .card-title,
+.card.bg-info    .card-title {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+/* ── Receipt ───────────────────────────────────────────────── */
+.receipt-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.receipt-divider {
+    border-top: 2px dashed var(--border-color);
+    margin: 1rem 0;
+}
+
+/* ── Responsive ────────────────────────────────────────────── */
 @media (max-width: 992px) {
     .navbar-nav {
-        width: 100%;
-        text-align: center;
-    }
-    .navbar-collapse {
-        justify-content: center;
+        padding-top: 8px;
     }
 }
 
 @media (max-width: 768px) {
     .info-bar {
         flex-direction: column;
-        align-items: center;
-        gap: 10px;
+        align-items: flex-start;
+        gap: 8px;
     }
 }
 
 @media (max-width: 576px) {
     .container {
-        padding: 10px;
+        padding: 0 12px 30px;
     }
 
     .nav-tabs .nav-link {
-        padding: 0.75rem 1rem;
+        padding: 0.65rem 0.9rem;
+        font-size: 0.875rem;
     }
+
+    #scanner-container {
+        max-width: 100% !important;
+    }
+}
+
+/* ── Print ─────────────────────────────────────────────────── */
+@media print {
+    .no-print  { display: none !important; }
+    body       { background: white; }
+    .navbar    { display: none; }
+    .container { padding: 0; max-width: 100%; }
+    .card      { box-shadow: none !important; border: 1px solid #dee2e6 !important; }
 }
