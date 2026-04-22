@@ -27,8 +27,18 @@ java {
     }
 }
 
+// Use the Spring AI Bill of Materials (BOM) to manage all Spring AI dependency versions
+// Version 0.8.1 is the latest stable GA release compatible with Spring Boot 3.2.x
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.ai:spring-ai-bom:0.8.1"
+    }
+}
+
 repositories {
     mavenCentral()
+    // The Spring Milestone repository is required for Spring AI 0.8.1
+    maven { url 'https://repo.spring.io/milestone' }
 }
 
 dependencies {
@@ -38,6 +48,12 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'      // Spring Data JPA + Hibernate
     implementation 'org.springframework.boot:spring-boot-starter-security'      // Spring Security (auth disabled)
     implementation 'org.springframework.boot:spring-boot-starter-validation'    // Bean Validation (JSR-380)
+
+    // ── Spring AI ─────────────────────────────────────────────────────────
+    implementation 'org.springframework.ai:spring-ai-ollama-spring-boot-starter'
+    // There is no huggingface-spring-boot-starter in 0.8.1, only spring-ai-huggingface
+    implementation 'org.springframework.ai:spring-ai-huggingface'
+
 
     // ── API documentation ─────────────────────────────────────────────────
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'   // Swagger UI at /swagger-ui/index.html
