@@ -27,6 +27,12 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     @Query("SELECT p FROM Product p WHERE p.id = :query OR LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<Product> findByIdOrNameContainingIgnoreCase(@Param("query") String query);
 
+    @Query("SELECT p FROM Product p WHERE (p.id = :query OR LOWER(p.name) LIKE LOWER(CONCAT('%', :query, '%'))) AND p.owner.username = :username")
+    List<Product> findByOwnerAndIdOrNameContaining(@Param("username") String username, @Param("query") String query);
+
+    @Query("SELECT p FROM Product p WHERE p.owner.username = :username")
+    List<Product> findAllByOwnerUsername(@Param("username") String username);
+
     /**
      * Returns all active products whose stock quantity is at or below the
      * specified threshold. Used to generate low-stock warnings on the dashboard.
@@ -37,13 +43,12 @@ public interface ProductRepository extends JpaRepository<Product, String> {
     @Query("SELECT p FROM Product p WHERE p.quantity <= :threshold ORDER BY p.quantity ASC")
     List<Product> findLowStockProducts(@Param("threshold") int threshold);
 
-    /**
-     * Counts the number of active products whose stock quantity is at or below
-     * the specified threshold. Used for the low-stock badge in the navigation.
-     *
-     * @param threshold the maximum quantity that qualifies as "low stock"
-     * @return count of low-stock active products
-     */
+    @Query("SELECT p FROM Product p WHERE p.quantity <= :threshold AND p.owner.username = :username ORDER BY p.quantity ASC")
+    List<Product> findLowStockProductsByOwner(@Param("threshold") int threshold, @Param("username") String username);
+
     @Query("SELECT COUNT(p) FROM Product p WHERE p.quantity <= :threshold")
     long countLowStockProducts(@Param("threshold") int threshold);
+
+    @Query("SELECT COUNT(p) FROM Product p WHERE p.quantity <= :threshold AND p.owner.username = :username")
+    long countLowStockProductsByOwner(@Param("threshold") int threshold, @Param("username") String username);
 }

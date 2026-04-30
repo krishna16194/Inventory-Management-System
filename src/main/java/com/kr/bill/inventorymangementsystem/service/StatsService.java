@@ -18,15 +18,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Service for computing inventory and sales statistics.
- *
- * <p>All heavy aggregation is performed in-memory via Java Streams.
- * For large datasets consider migrating the aggregation queries to JPQL/SQL.</p>
+ * Service for computing inventory and sales statistics, scoped per user.
  */
 @Service
 public class StatsService {
 
-    /** Default threshold below which a product is considered "low stock". */
     public static final int LOW_STOCK_THRESHOLD = 5;
 
     private final ProductRepository productRepository;
@@ -37,101 +33,48 @@ public class StatsService {
         this.billRepository = billRepository;
     }
 
-    // -----------------------------------------------------------------------
-    // Inventory stats
-    // -----------------------------------------------------------------------
+    // ── Inventory stats (owner-scoped) ───────────────────────────────────
 
-    /**
-     * Returns the total number of distinct active product SKUs in the system.
-     *
-     * @return count of active products
-     */
-    public long getTotalProducts() {
-        return productRepository.count();
+    public long getTotalProducts(String username) {
+        return productRepository.findAllByOwnerUsername(username).size();
     }
 
-    /**
-     * Returns the sum of {@code quantity} across all active products.
-     *
-     * @return total units currently in stock
-     */
-    public long getTotalStockQuantity() {
-        return productRepository.findAll().stream()
+    public long getTotalStockQuantity(String username) {
+        return productRepository.findAllByOwnerUsername(username).stream()
                 .mapToLong(Product::getQuantity).sum();
     }
 
-    /**
-     * Returns the total monetary value of the current inventory
-     * (price × quantity for every active product).
-     *
-     * @return total inventory value
-     */
-    public double getTotalInventoryValue() {
-        return productRepository.findAll().stream()
+    public double getTotalInventoryValue(String username) {
+        return productRepository.findAllByOwnerUsername(username).stream()
                 .mapToDouble(p -> p.getPrice() * p.getQuantity()).sum();
     }
 
-    /**
-     * Returns all active products whose stock quantity is at or below
-     * {@link #LOW_STOCK_THRESHOLD}, ordered by quantity ascending.
-     *
-     * @return list of low-stock products
-     */
-    public List<Product> getLowStockProducts() {
-        return productRepository.findLowStockProducts(LOW_STOCK_THRESHOLD);
+    public List<Product> getLowStockProducts(String username) {
+        return productRepository.findLowStockProductsByOwner(LOW_STOCK_THRESHOLD, username);
     }
 
-    /**
-     * Returns the count of active products at or below the low-stock threshold.
-     * Used to render the warning badge on the dashboard navigation.
-     *
-     * @return number of low-stock products
-     */
-    public long getLowStockCount() {
-        return productRepository.countLowStockProducts(LOW_STOCK_THRESHOLD);
+    public long getLowStockCount(String username) {
+        return productRepository.countLowStockProductsByOwner(LOW_STOCK_THRESHOLD, username);
     }
 
-    // -----------------------------------------------------------------------
-    // Today's quick-stats
-    // -----------------------------------------------------------------------
+    // ── Today's quick-stats (owner-scoped) ──────────────────────────────
 
-    /**
-     * Calculates the total revenue generated today (midnight → now).
-     *
-     * @return today's revenue
-     */
-    public double getTodayRevenue() {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay   = LocalDate.now().atTime(LocalTime.MAX);
-        return billRepository.sumTotalAmountByTransactionTimeBetween(startOfDay, endOfDay);
+    public double getTodayRevenue(String username) {
+        LocalDateTime start = LocalDate.now().atStartOfDay();
+        LocalDateTime end   = LocalDate.now().atTime(LocalTime.MAX);
+        return billRepository.sumTotalAmountByOwnerAndTransactionTimeBetween(username, start, end);
     }
 
-    /**
-     * Returns the number of bills (transactions) completed today.
-     *
-     * @return today's bill count
-     */
-    public long getTodayBillCount() {
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        LocalDateTime endOfDay   = LocalDate.now().atTime(LocalTime.MAX);
-        return billRepository.countByTransactionTimeBetween(startOfDay, endOfDay);
+    public long getTodayBillCount(String username) {
+        LocalDateTime start = LocalDate.now().atStartOfDay();
+        LocalDateTime end   = LocalDate.now().atTime(LocalTime.MAX);
+        return billRepository.countByOwnerUsernameAndTransactionTimeBetween(username, start, end);
     }
 
-    // -----------------------------------------------------------------------
-    // Date-range stats
-    // -----------------------------------------------------------------------
+    // ── Date-range stats (owner-scoped) ─────────────────────────────────
 
-    /**
-     * Groups bills by calendar date within the given range and returns a
-     * {@link DailySale} summary for each day that had at least one sale.
-     * Results are sorted newest-first.
-     *
-     * @param startDate first date to include (inclusive)
-     * @param endDate   last date to include (inclusive)
-     * @return daily sales summaries, newest first
-     */
-    public List<DailySale> getDailySales(LocalDate startDate, LocalDate endDate) {
-        List<Bill> bills = billRepository.findAll();
+    public List<DailySale> getDailySales(LocalDate startDate, LocalDate endDate, String username) {
+        List<Bill> bills = billRepository.findByOwnerUsernameOrderByTransactionTimeDesc(username);
         Map<LocalDate, List<Bill>> billsByDay = bills.stream()
                 .filter(bill -> {
                     LocalDate d = bill.getTransactionTime().toLocalDate();
@@ -145,8 +88,7 @@ public class StatsService {
                     List<Bill> dailyBills = entry.getValue();
                     long itemsSold = dailyBills.stream()
                             .flatMap(bill -> bill.getBillItems().stream())
-                            .mapToLong(BillItem::getQuantity)
-                            .sum();
+                            .mapToLong(BillItem::getQuantity).sum();
                     double totalRevenue = dailyBills.stream()
                             .mapToDouble(Bill::getTotalAmount).sum();
                     return new DailySale(date, itemsSold, totalRevenue);
@@ -155,16 +97,8 @@ public class StatsService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Aggregates all bill items within the given date range by product and
-     * returns a ranked list of top-selling products (highest quantity sold first).
-     *
-     * @param startDate first date to include (inclusive)
-     * @param endDate   last date to include (inclusive)
-     * @return product sales summaries, best-seller first
-     */
-    public List<ProductSale> getTopSellingProducts(LocalDate startDate, LocalDate endDate) {
-        List<Bill> bills = billRepository.findAll();
+    public List<ProductSale> getTopSellingProducts(LocalDate startDate, LocalDate endDate, String username) {
+        List<Bill> bills = billRepository.findByOwnerUsernameOrderByTransactionTimeDesc(username);
         Map<String, List<BillItem>> itemsByProduct = bills.stream()
                 .filter(bill -> {
                     LocalDate d = bill.getTransactionTime().toLocalDate();
@@ -184,5 +118,46 @@ public class StatsService {
                 })
                 .sorted(Comparator.comparing(ProductSale::getTotalQuantitySold).reversed())
                 .collect(Collectors.toList());
+    }
+
+    // ── Legacy (no-arg) delegates kept for backwards compat ─────────────
+
+    /** @deprecated use owner-scoped variant */
+    public long getTotalProducts() { return productRepository.count(); }
+    /** @deprecated use owner-scoped variant */
+    public long getTotalStockQuantity() {
+        return productRepository.findAll().stream().mapToLong(Product::getQuantity).sum();
+    }
+    /** @deprecated use owner-scoped variant */
+    public double getTotalInventoryValue() {
+        return productRepository.findAll().stream().mapToDouble(p -> p.getPrice() * p.getQuantity()).sum();
+    }
+    /** @deprecated use owner-scoped variant */
+    public List<Product> getLowStockProducts() {
+        return productRepository.findLowStockProducts(LOW_STOCK_THRESHOLD);
+    }
+    /** @deprecated use owner-scoped variant */
+    public long getLowStockCount() {
+        return productRepository.countLowStockProducts(LOW_STOCK_THRESHOLD);
+    }
+    /** @deprecated use owner-scoped variant */
+    public double getTodayRevenue() {
+        LocalDateTime start = LocalDate.now().atStartOfDay();
+        LocalDateTime end   = LocalDate.now().atTime(LocalTime.MAX);
+        return billRepository.sumTotalAmountByTransactionTimeBetween(start, end);
+    }
+    /** @deprecated use owner-scoped variant */
+    public long getTodayBillCount() {
+        LocalDateTime start = LocalDate.now().atStartOfDay();
+        LocalDateTime end   = LocalDate.now().atTime(LocalTime.MAX);
+        return billRepository.countByTransactionTimeBetween(start, end);
+    }
+    /** @deprecated use owner-scoped variant */
+    public List<DailySale> getDailySales(LocalDate startDate, LocalDate endDate) {
+        return getDailySales(startDate, endDate, null);
+    }
+    /** @deprecated use owner-scoped variant */
+    public List<ProductSale> getTopSellingProducts(LocalDate startDate, LocalDate endDate) {
+        return getTopSellingProducts(startDate, endDate, null);
     }
 }

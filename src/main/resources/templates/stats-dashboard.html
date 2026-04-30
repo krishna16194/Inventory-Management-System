@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <title>Statistics Dashboard</title>
@@ -29,17 +29,24 @@
                         <a class="nav-link" th:href="@{/bill-history}">Bill History</a>
                     </li>
                 </ul>
-                <div class="d-flex">
+                <div class="d-flex align-items-center gap-2">
                     <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button"
+                        <button class="btn-lang dropdown-toggle" type="button"
                                 id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            Language
+                            🌐 Language
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
                             <li><a class="dropdown-item" href="?lang=en">🇬🇧 English</a></li>
                             <li><a class="dropdown-item" href="?lang=ta">🇮🇳 தமிழ்</a></li>
                         </ul>
                     </div>
+                    <!-- User profile chip -->
+                    <div class="nav-user-chip">
+                        <div class="nav-user-avatar" th:text="${userInitial}">U</div>
+                        <span th:text="${username}">User</span>
+                    </div>
+                    <!-- Logout -->
+                    <a th:href="@{/logout}" class="btn-logout">⏻ Logout</a>
                 </div>
             </div>
         </div>

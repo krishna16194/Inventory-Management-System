@@ -4,6 +4,8 @@ import com.kr.bill.inventorymangementsystem.model.Product;
 import com.kr.bill.inventorymangementsystem.repository.ProductRepository;
 import com.kr.bill.inventorymangementsystem.service.StatsService;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -60,12 +62,15 @@ public class DashboardController {
      * @return name of the Thymeleaf template to render ({@code "dashboard"})
      */
     @GetMapping
-    public String showDashboard(Model model, HttpSession session) {
+    public String showDashboard(Model model, HttpSession session,
+                                @AuthenticationPrincipal UserDetails userDetails) {
+        String username = userDetails.getUsername();
+
         // Add-Inventory tab: blank product for the form binding
         model.addAttribute("product", new Product());
 
         // View-Inventory tab: full product list
-        model.addAttribute("products", productRepository.findAll());
+        model.addAttribute("products", productRepository.findAllByOwnerUsername(username));
 
         // Billing tab: current session cart & running total
         @SuppressWarnings("unchecked")
@@ -78,12 +83,12 @@ public class DashboardController {
         model.addAttribute("total", total);
 
         // Low-stock warnings
-        model.addAttribute("lowStockCount", statsService.getLowStockCount());
+        model.addAttribute("lowStockCount",     statsService.getLowStockCount(username));
         model.addAttribute("lowStockThreshold", StatsService.LOW_STOCK_THRESHOLD);
 
         // Today's quick-stats for the info bar
-        model.addAttribute("todayRevenue", statsService.getTodayRevenue());
-        model.addAttribute("todayBillCount", statsService.getTodayBillCount());
+        model.addAttribute("todayRevenue",      statsService.getTodayRevenue(username));
+        model.addAttribute("todayBillCount",    statsService.getTodayBillCount(username));
 
         return "dashboard";
     }

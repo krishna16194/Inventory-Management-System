@@ -3,6 +3,7 @@ package com.kr.bill.inventorymangementsystem.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * JPA entity representing a single line item within a {@link Bill}.
@@ -32,6 +33,7 @@ public class BillItem {
      * The bill (invoice) this line item belongs to.
      * Uses a foreign key column {@code bill_id}.
      */
+    @JsonIgnore
     @ManyToOne
     @JoinColumn(name = "bill_id")
     private Bill bill;

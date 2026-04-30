@@ -1,13 +1,17 @@
 package com.kr.bill.inventorymangementsystem.controller;
 
+import com.kr.bill.inventorymangementsystem.model.AppUser;
 import com.kr.bill.inventorymangementsystem.model.Product;
 import com.kr.bill.inventorymangementsystem.repository.ProductRepository;
 import com.kr.bill.inventorymangementsystem.service.ExcelService;
 import com.kr.bill.inventorymangementsystem.service.StatsService;
+import com.kr.bill.inventorymangementsystem.service.UserService;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -31,13 +35,16 @@ public class InventoryApiController {
     private final ProductRepository productRepository;
     private final ExcelService excelService;
     private final StatsService statsService;
+    private final UserService userService;
 
     public InventoryApiController(ProductRepository productRepository,
                                    ExcelService excelService,
-                                   StatsService statsService) {
+                                   StatsService statsService,
+                                   UserService userService) {
         this.productRepository = productRepository;
         this.excelService = excelService;
         this.statsService = statsService;
+        this.userService = userService;
     }
 
     /**
@@ -49,8 +56,9 @@ public class InventoryApiController {
      * @return list of matching active products as JSON
      */
     @GetMapping("/search")
-    public List<Product> searchProducts(@RequestParam String query) {
-        return productRepository.findByIdOrNameContainingIgnoreCase(query);
+    public List<Product> searchProducts(@RequestParam String query,
+                                        @AuthenticationPrincipal UserDetails userDetails) {
+        return productRepository.findByOwnerAndIdOrNameContaining(userDetails.getUsername(), query);
     }
 
     /**
@@ -60,8 +68,8 @@ public class InventoryApiController {
      * @return list of all active products as JSON
      */
     @GetMapping
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    public List<Product> getAllProducts(@AuthenticationPrincipal UserDetails userDetails) {
+        return productRepository.findAllByOwnerUsername(userDetails.getUsername());
     }
 
     /**
@@ -73,8 +81,11 @@ public class InventoryApiController {
      * @return 200 OK with product JSON, or 404 Not Found if no active product exists
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable String id) {
+    public ResponseEntity<Product> getProductById(@PathVariable String id,
+                                                   @AuthenticationPrincipal UserDetails userDetails) {
         return productRepository.findById(id)
+                .filter(p -> p.getOwner() != null
+                        && p.getOwner().getUsername().equals(userDetails.getUsername()))
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
@@ -87,8 +98,8 @@ public class InventoryApiController {
      * @return list of low-stock products ordered by quantity ascending
      */
     @GetMapping("/low-stock")
-    public List<Product> getLowStockProducts() {
-        return statsService.getLowStockProducts();
+    public List<Product> getLowStockProducts(@AuthenticationPrincipal UserDetails userDetails) {
+        return statsService.getLowStockProducts(userDetails.getUsername());
     }
 
     /**
@@ -117,9 +128,11 @@ public class InventoryApiController {
      * @return 200 OK with a success message, or 400 Bad Request on parse failure
      */
     @PostMapping("/import")
-    public ResponseEntity<String> importProducts(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<String> importProducts(@RequestParam("file") MultipartFile file,
+                                                  @AuthenticationPrincipal UserDetails userDetails) {
         try {
-            excelService.importProductsFromExcel(file);
+            AppUser owner = userService.findByUsername(userDetails.getUsername());
+            excelService.importProductsFromExcel(file, owner);
             return ResponseEntity.ok("Products imported successfully");
         } catch (IOException e) {
             return ResponseEntity.badRequest()

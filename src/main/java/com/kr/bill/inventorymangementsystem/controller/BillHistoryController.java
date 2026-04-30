@@ -2,6 +2,8 @@ package com.kr.bill.inventorymangementsystem.controller;
 
 import com.kr.bill.inventorymangementsystem.repository.BillRepository;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -65,22 +67,27 @@ public class BillHistoryController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
             @RequestParam(required = false, defaultValue = "") String customerName,
+            @AuthenticationPrincipal UserDetails userDetails,
             Model model) {
 
         // Default date range: last 30 days
         if (startDate == null) startDate = LocalDate.now().minusDays(30);
         if (endDate == null)   endDate   = LocalDate.now();
 
+        String username = userDetails.getUsername();
+
         if (!customerName.isBlank()) {
             // Customer-name search mode
             model.addAttribute("bills",
-                    billRepository.findByCustomerNameContainingIgnoreCaseOrderByTransactionTimeDesc(customerName));
+                    billRepository.findByOwnerUsernameAndCustomerNameContainingIgnoreCaseOrderByTransactionTimeDesc(
+                            username, customerName));
         } else {
             // Date-range mode
             LocalDateTime start = startDate.atStartOfDay();
             LocalDateTime end   = endDate.atTime(LocalTime.MAX);
             model.addAttribute("bills",
-                    billRepository.findByTransactionTimeBetweenOrderByTransactionTimeDesc(start, end));
+                    billRepository.findByOwnerUsernameAndTransactionTimeBetweenOrderByTransactionTimeDesc(
+                            username, start, end));
         }
 
         model.addAttribute("startDate", startDate);

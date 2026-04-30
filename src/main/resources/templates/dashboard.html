@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head>
     <meta charset="UTF-8">
     <title th:text="#{dashboard.title}">Dashboard</title>
@@ -41,15 +41,22 @@
                               th:text="${lowStockCount}"></span>
                     </a>
                     <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle" type="button"
+                        <button class="btn-lang dropdown-toggle" type="button"
                                 id="languageDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            Language
+                            🌐 Language
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="languageDropdown">
                             <li><a class="dropdown-item" href="?lang=en">🇬🇧 English</a></li>
                             <li><a class="dropdown-item" href="?lang=ta">🇮🇳 தமிழ்</a></li>
                         </ul>
                     </div>
+                    <!-- User profile chip -->
+                    <div class="nav-user-chip">
+                        <div class="nav-user-avatar" th:text="${userInitial}">U</div>
+                        <span th:text="${username}">User</span>
+                    </div>
+                    <!-- Logout -->
+                    <a th:href="@{/logout}" class="btn-logout">⏻ Logout</a>
                 </div>
             </div>
         </div>
@@ -89,31 +96,26 @@
         <!-- =================================================================
              Tabs
              ================================================================= -->
-        <ul class="nav nav-tabs mt-4" id="dashboardTabs" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="billing-tab"
+        <div class="tab-nav-wrap mt-4">
+            <div class="tab-nav" id="dashboardTabs" role="tablist">
+                <button class="tab-btn active" id="billing-tab"
                         data-bs-toggle="tab" data-bs-target="#billing"
                         type="button" role="tab" aria-controls="billing" aria-selected="true"
                         th:text="#{tab.billing}">Billing</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="add-inventory-tab"
+                <button class="tab-btn" id="add-inventory-tab"
                         data-bs-toggle="tab" data-bs-target="#add-inventory"
                         type="button" role="tab" aria-controls="add-inventory" aria-selected="false"
                         th:text="#{tab.add.inventory}">Add Inventory</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" id="view-inventory-tab"
+                <button class="tab-btn" id="view-inventory-tab"
                         data-bs-toggle="tab" data-bs-target="#view-inventory"
                         type="button" role="tab" aria-controls="view-inventory" aria-selected="false">
                     <span th:text="#{tab.view.inventory}">View Inventory</span>
-                    <!-- Low-stock badge on the tab itself -->
                     <span th:if="${lowStockCount > 0}"
-                          class="badge bg-warning text-dark ms-1"
-                          th:text="${lowStockCount} + ' low'"></span>
+                          class="tab-badge"
+                          th:text="${lowStockCount}">0</span>
                 </button>
-            </li>
-        </ul>
+            </div>
+        </div>
 
         <div class="tab-content" id="dashboardTabsContent">
 
@@ -477,9 +479,17 @@
         // ── Activate tab from URL hash (e.g. after redirect) ─────────────────
         const hash = window.location.hash;
         if (hash) {
-            const tabBtn = document.querySelector(`button[data-bs-target="${hash}"]`);
+            const tabBtn = document.querySelector(`.tab-btn[data-bs-target="${hash}"]`);
             if (tabBtn) new bootstrap.Tab(tabBtn).show();
         }
+
+        // ── Keep tab-btn.active in sync with Bootstrap tab events ─────────────
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('shown.bs.tab', () => {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
 
         // ── Edit Product Modal ────────────────────────────────────────────────
         document.getElementById('editProductModal')
@@ -500,18 +510,50 @@
             });
         });
 
-        // ── Barcode Scanner ───────────────────────────────────────────────────
-        const scannerEl  = document.getElementById('scanner-container');
-        const html5QrCode = new Html5Qrcode("scanner-container");
-        let isScanning   = false;
-        let scanCooldown = false; // debounce duplicate reads
+        // ── Barcode Scanner (BarcodeDetector + canvas brightness boost) ─────────
+        const scannerEl = document.getElementById('scanner-container');
+        let isScanning  = false;
+        let scanCooldown = false;
+        let torchOn     = false;
+        let videoStream = null;
+        let rafId       = null;          // requestAnimationFrame handle
+        let videoEl     = null;
+        let canvasEl    = null;
+        let ctxEl       = null;
+        let detector    = null;
+        let html5Fallback = null;        // fallback if BarcodeDetector unavailable
 
-        /**
-         * Shows a temporary feedback banner below the scan button.
-         * @param {string} elementId  ID of the feedback <div>
-         * @param {string} message    Text to display
-         * @param {boolean} success   Green (true) or red (false)
-         */
+        // Check native BarcodeDetector support
+        const hasBarcodeDetector = ('BarcodeDetector' in window);
+
+        // Torch button
+        const torchBtn = document.createElement('button');
+        torchBtn.id = 'torch-btn';
+        torchBtn.title = 'Toggle flashlight / boost brightness';
+        torchBtn.innerHTML = '🔦';
+        torchBtn.style.display = 'none';
+        torchBtn.type = 'button';
+        scannerEl.appendChild(torchBtn);
+
+        torchBtn.addEventListener('click', async () => {
+            if (!videoStream) return;
+            const track = videoStream.getVideoTracks()[0];
+            const caps  = track.getCapabilities ? track.getCapabilities() : {};
+            if (caps.torch) {
+                torchOn = !torchOn;
+                await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+                torchBtn.classList.toggle('active', torchOn);
+                torchBtn.innerHTML = torchOn ? '💡' : '🔦';
+            } else {
+                // Software: toggle extra canvas brightness boost
+                const cur = parseFloat(scannerEl.dataset.brightBoost || '1');
+                const next = cur < 2 ? 2.5 : 1;
+                scannerEl.dataset.brightBoost = next;
+                torchBtn.classList.toggle('active', next > 1);
+                torchBtn.innerHTML = next > 1 ? '💡' : '🔦';
+            }
+        });
+
         function showFeedback(elementId, message, success) {
             const el = document.getElementById(elementId);
             el.textContent = message;
@@ -520,15 +562,6 @@
             el._hideTimer = setTimeout(() => { el.className = 'alert d-none mb-2'; }, 3000);
         }
 
-        /**
-         * Re-renders the billing table with the latest cart data returned by the
-         * AJAX scan endpoint, then shows/hides the checkout section accordingly.
-         * Also updates the cart-count badge in the card header.
-         *
-         * @param {Array}  items  Array of {name, id, price, quantity, subtotal}
-         * @param {number} total  Grand total value
-         * @param {number} cartCount  Total units in cart (for badge)
-         */
         function updateBillingTable(items, total, cartCount) {
             const tbody = document.getElementById('billing-table-body');
             tbody.innerHTML = '';
@@ -556,49 +589,33 @@
                     </td>`;
                 tbody.appendChild(tr);
             });
-
-            // Update grand total
             const grandTotalEl = document.getElementById('grand-total');
             if (grandTotalEl) grandTotalEl.textContent = '$' + total.toFixed(2);
-
-            // Show / hide checkout section
             const checkoutSection = document.getElementById('billing-checkout-section');
             if (checkoutSection) checkoutSection.style.display = items.length > 0 ? '' : 'none';
-
-            // Show / hide table vs empty-cart message
-            const table   = document.getElementById('billing-table');
+            const table    = document.getElementById('billing-table');
             const emptyMsg = document.getElementById('empty-cart-msg');
             if (table)    table.classList.toggle('d-none', items.length === 0);
             if (emptyMsg) emptyMsg.style.display = items.length === 0 ? '' : 'none';
-
-            // Cart count badge
             const badge = document.getElementById('cart-count-badge');
             if (badge) badge.textContent = (cartCount || 0) + ' item' + (cartCount !== 1 ? 's' : '');
         }
 
-        /** Escapes HTML special chars to prevent XSS when building innerHTML. */
         function escHtml(str) {
-            return String(str)
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                              .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
-        /**
-         * Callback fired on every successful barcode/QR decode.
-         * - Billing tab  → AJAX POST to /billing/add-scan; table updated in-place.
-         * - Add Inventory tab → fills the barcode ID field and triggers auto-populate.
-         * Scanning is NOT stopped; it continues until the operator clicks Stop.
-         */
-        const onScanSuccess = decodedText => {
+        function onBarcodeDecoded(text) {
             if (scanCooldown) return;
             scanCooldown = true;
             setTimeout(() => { scanCooldown = false; }, 1500);
 
-            const activeTab = document.querySelector('.nav-tabs .active').getAttribute('data-bs-target');
+            const activeTab = document.querySelector('.tab-btn.active').getAttribute('data-bs-target');
 
             if (activeTab === '#billing') {
                 const fd = new FormData();
-                fd.append('productId', decodedText);
+                fd.append('productId', text);
                 fetch('/billing/add-scan', { method: 'POST', body: fd })
                     .then(r => r.json())
                     .then(data => {
@@ -606,39 +623,189 @@
                         if (data.success) updateBillingTable(data.items, data.total, data.cartCount);
                     })
                     .catch(() => showFeedback('billing-scan-feedback', 'Server error – please try again.', false));
-
             } else if (activeTab === '#add-inventory') {
                 const idInput = document.getElementById('inventoryProductId');
-                idInput.value = decodedText;
+                idInput.value = text;
                 idInput.dispatchEvent(new Event('input', { bubbles: true }));
                 showFeedback('inventory-scan-feedback',
-                    `Barcode scanned: ${decodedText} — complete the form and save.`, true);
+                    `Barcode scanned: ${text} — complete the form and save.`, true);
             }
-        };
+        }
 
-        function startScanning(placeholderId, btn) {
+        // ── BarcodeDetector scanning loop ────────────────────────────────────
+        // Draws each video frame onto a canvas WITH brightness+contrast boost,
+        // then runs BarcodeDetector.detect() on the boosted canvas pixels.
+        // This is the key fix for dim light — the decoder sees brightened pixels.
+        function scanLoop() {
+            if (!isScanning || !videoEl || !canvasEl || !detector) return;
+            if (videoEl.readyState < 2) { rafId = requestAnimationFrame(scanLoop); return; }
+
+            canvasEl.width  = videoEl.videoWidth  || 640;
+            canvasEl.height = videoEl.videoHeight || 480;
+
+            const brightBoost = parseFloat(scannerEl.dataset.brightBoost || '1.8');
+            // Apply brightness + contrast boost BEFORE drawing — this directly
+            // affects what BarcodeDetector sees, unlike CSS filters on <video>
+            ctxEl.filter = `brightness(${brightBoost}) contrast(1.4) saturate(0.8)`;
+            ctxEl.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
+            ctxEl.filter = 'none';
+
+            detector.detect(canvasEl)
+                .then(barcodes => {
+                    if (barcodes.length > 0) onBarcodeDecoded(barcodes[0].rawValue);
+                })
+                .catch(() => {});
+
+            rafId = requestAnimationFrame(scanLoop);
+        }
+
+        // ── Apply camera constraints for best low-light quality ──────────────
+        async function applyLowLightConstraints(track) {
+            try {
+                const caps = track.getCapabilities ? track.getCapabilities() : {};
+                const constraints = {};
+                // Maximize exposure time if supported (longer exposure = brighter in dark)
+                if (caps.exposureMode && caps.exposureMode.includes('continuous')) {
+                    constraints.exposureMode = 'continuous';
+                }
+                if (caps.whiteBalanceMode && caps.whiteBalanceMode.includes('continuous')) {
+                    constraints.whiteBalanceMode = 'continuous';
+                }
+                if (caps.focusMode && caps.focusMode.includes('continuous')) {
+                    constraints.focusMode = 'continuous';
+                }
+                if (Object.keys(constraints).length > 0) {
+                    await track.applyConstraints({ advanced: [constraints] });
+                }
+            } catch(e) { /* constraints may not be supported */ }
+        }
+
+        async function startScanning(placeholderId, btn) {
             document.getElementById(placeholderId).appendChild(scannerEl);
             scannerEl.style.display = 'block';
-            html5QrCode.start(
-                { facingMode: 'environment' },
-                { fps: 10, qrbox: { width: 260, height: 260 } },
-                onScanSuccess,
-                () => { /* ignore transient failures */ }
-            );
+            scannerEl.classList.add('scanning-active');
+            scannerEl.dataset.brightBoost = '1.8'; // default boost
+
+            btn.textContent = '⏹ Stop Scanning';
+            btn.classList.replace('btn-primary', 'btn-danger');
             isScanning = true;
-            btn.textContent = 'Stop Scanning';
+
+            if (hasBarcodeDetector) {
+                // ── Path A: Native BarcodeDetector (best quality, best dim-light) ──
+                try {
+                    detector = new BarcodeDetector({
+                        formats: [
+                            'ean_13','ean_8','code_128','code_39','code_93',
+                            'codabar','itf','upc_a','upc_e','qr_code','data_matrix'
+                        ]
+                    });
+
+                    videoStream = await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: { ideal: 'environment' },
+                            width:  { ideal: 1920, min: 640 },
+                            height: { ideal: 1080, min: 480 },
+                            frameRate: { ideal: 30 }
+                        }
+                    });
+
+                    const track = videoStream.getVideoTracks()[0];
+                    await applyLowLightConstraints(track);
+
+                    // Build video + hidden canvas inside scanner container
+                    videoEl = document.createElement('video');
+                    videoEl.srcObject = videoStream;
+                    videoEl.autoplay  = true;
+                    videoEl.playsInline = true;
+                    videoEl.muted = true;
+                    videoEl.style.cssText = 'width:100%;display:block;';
+                    // Note: we do NOT apply CSS filter here — boost happens on canvas
+
+                    canvasEl = document.createElement('canvas');
+                    canvasEl.style.display = 'none';
+                    ctxEl = canvasEl.getContext('2d', { willReadFrequently: true });
+
+                    // Insert before torch button
+                    scannerEl.insertBefore(videoEl, torchBtn);
+                    scannerEl.insertBefore(canvasEl, torchBtn);
+
+                    await videoEl.play();
+                    torchBtn.style.display = 'flex';
+                    rafId = requestAnimationFrame(scanLoop);
+
+                } catch(e) {
+                    console.warn('BarcodeDetector path failed, falling back:', e);
+                    isScanning = false;
+                    startScanningFallback(placeholderId, btn);
+                }
+            } else {
+                // ── Path B: html5-qrcode fallback ────────────────────────────
+                startScanningFallback(placeholderId, btn);
+            }
+        }
+
+        function startScanningFallback(placeholderId, btn) {
+            // Ensure container is in position
+            document.getElementById(placeholderId).appendChild(scannerEl);
+            scannerEl.style.display = 'block';
+            scannerEl.classList.add('scanning-active');
+            isScanning = true;
+
+            html5Fallback = new Html5Qrcode('scanner-container');
+            html5Fallback.start(
+                { facingMode: 'environment' },
+                { fps: 25, qrbox: { width: 300, height: 300 },
+                  experimentalFeatures: { useBarCodeDetectorIfSupported: true } },
+                onBarcodeDecoded,
+                () => {}
+            ).then(() => {
+                torchBtn.style.display = 'flex';
+                // Apply software brightness boost to the video element
+                // that html5-qrcode creates (CSS filter on video for visual feedback only)
+                setTimeout(() => {
+                    const v = scannerEl.querySelector('video');
+                    if (v) v.style.filter = 'brightness(1.4) contrast(1.2)';
+                }, 800);
+            });
+
+            btn.textContent = '⏹ Stop Scanning';
             btn.classList.replace('btn-primary', 'btn-danger');
         }
 
         function stopScanning() {
             if (!isScanning) return;
-            html5QrCode.stop().then(() => {
-                scannerEl.style.display = 'none';
-                isScanning = false;
-                ['billing-scan-button', 'inventory-scan-button'].forEach(id => {
-                    const b = document.getElementById(id);
-                    if (b) { b.textContent = 'Start Scanning'; b.classList.replace('btn-danger', 'btn-primary'); }
-                });
+            isScanning = false;
+
+            // Stop rAF loop
+            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+
+            // Stop video stream (BarcodeDetector path)
+            if (videoStream) {
+                videoStream.getTracks().forEach(t => t.stop());
+                videoStream = null;
+            }
+            if (videoEl) { videoEl.remove(); videoEl = null; }
+            if (canvasEl) { canvasEl.remove(); canvasEl = null; ctxEl = null; }
+            detector = null;
+
+            // Stop html5-qrcode fallback
+            if (html5Fallback) {
+                html5Fallback.stop().catch(() => {}).finally(() => { html5Fallback = null; });
+            }
+
+            // Reset torch
+            torchOn = false;
+            torchBtn.style.display = 'none';
+            torchBtn.classList.remove('active');
+            torchBtn.innerHTML = '🔦';
+
+            scannerEl.style.display = 'none';
+            scannerEl.classList.remove('scanning-active');
+            delete scannerEl.dataset.brightBoost;
+
+            ['billing-scan-button', 'inventory-scan-button'].forEach(id => {
+                const b = document.getElementById(id);
+                if (b) { b.textContent = 'Start Scanning'; b.classList.replace('btn-danger', 'btn-primary'); }
             });
         }
 

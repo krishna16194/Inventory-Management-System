@@ -1,7 +1,11 @@
 package com.kr.bill.inventorymangementsystem.controller;
 
+import com.kr.bill.inventorymangementsystem.model.AppUser;
 import com.kr.bill.inventorymangementsystem.model.Product;
 import com.kr.bill.inventorymangementsystem.repository.ProductRepository;
+import com.kr.bill.inventorymangementsystem.service.UserService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -25,9 +29,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class ProductController {
 
     private final ProductRepository productRepository;
+    private final UserService userService;
 
-    public ProductController(ProductRepository productRepository) {
+    public ProductController(ProductRepository productRepository, UserService userService) {
         this.productRepository = productRepository;
+        this.userService = userService;
     }
 
     /**
@@ -37,8 +43,9 @@ public class ProductController {
      * @return Thymeleaf template name {@code "products"}
      */
     @GetMapping
-    public String listProducts(Model model) {
-        model.addAttribute("products", productRepository.findAll());
+    public String listProducts(Model model,
+                               @AuthenticationPrincipal UserDetails userDetails) {
+        model.addAttribute("products", productRepository.findAllByOwnerUsername(userDetails.getUsername()));
         model.addAttribute("product", new Product());
         return "products";
     }
@@ -51,7 +58,11 @@ public class ProductController {
      * @return redirect to {@code /dashboard#add-inventory}
      */
     @PostMapping
-    public String addProduct(Product product, RedirectAttributes redirectAttributes) {
+    public String addProduct(Product product,
+                             @AuthenticationPrincipal UserDetails userDetails,
+                             RedirectAttributes redirectAttributes) {
+        AppUser owner = userService.findByUsername(userDetails.getUsername());
+        product.setOwner(owner);
         productRepository.save(product);
         redirectAttributes.addFlashAttribute("success", "Product added successfully!");
         return "redirect:/dashboard#add-inventory";
@@ -66,7 +77,13 @@ public class ProductController {
      * @return redirect to {@code /dashboard#add-inventory}
      */
     @PostMapping("/update")
-    public String updateProduct(Product product, RedirectAttributes redirectAttributes) {
+    public String updateProduct(Product product,
+                                @AuthenticationPrincipal UserDetails userDetails,
+                                RedirectAttributes redirectAttributes) {
+        // Preserve the owner from the existing record
+        productRepository.findById(product.getId()).ifPresent(existing -> {
+            product.setOwner(existing.getOwner());
+        });
         productRepository.save(product);
         redirectAttributes.addFlashAttribute("success", "Product updated successfully!");
         return "redirect:/dashboard#add-inventory";
@@ -81,7 +98,8 @@ public class ProductController {
      * @return redirect to {@code /dashboard#view-inventory}
      */
     @PostMapping("/delete")
-    public String deleteProduct(@RequestParam String id, RedirectAttributes redirectAttributes) {
+    public String deleteProduct(@RequestParam String id,
+                                RedirectAttributes redirectAttributes) {
         productRepository.findById(id).ifPresent(product -> {
             product.setActive(false);
             productRepository.save(product);

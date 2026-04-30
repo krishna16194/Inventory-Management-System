@@ -2,6 +2,8 @@ package com.kr.bill.inventorymangementsystem.controller;
 
 import com.kr.bill.inventorymangementsystem.service.StatsService;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -61,27 +63,30 @@ public class StatsController {
     public String showStatsDashboard(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @AuthenticationPrincipal UserDetails userDetails,
             Model model) {
 
         if (startDate == null) startDate = LocalDate.now().minusMonths(1);
         if (endDate == null)   endDate   = LocalDate.now();
 
+        String username = userDetails.getUsername();
+
         // Inventory overview
-        model.addAttribute("totalProducts",       statsService.getTotalProducts());
-        model.addAttribute("totalStockQuantity",  statsService.getTotalStockQuantity());
-        model.addAttribute("totalInventoryValue", statsService.getTotalInventoryValue());
+        model.addAttribute("totalProducts",       statsService.getTotalProducts(username));
+        model.addAttribute("totalStockQuantity",  statsService.getTotalStockQuantity(username));
+        model.addAttribute("totalInventoryValue", statsService.getTotalInventoryValue(username));
 
         // Today's quick-stats
-        model.addAttribute("todayRevenue",    statsService.getTodayRevenue());
-        model.addAttribute("todayBillCount",  statsService.getTodayBillCount());
+        model.addAttribute("todayRevenue",    statsService.getTodayRevenue(username));
+        model.addAttribute("todayBillCount",  statsService.getTodayBillCount(username));
 
         // Low-stock alerts
-        model.addAttribute("lowStockProducts",  statsService.getLowStockProducts());
+        model.addAttribute("lowStockProducts",  statsService.getLowStockProducts(username));
         model.addAttribute("lowStockThreshold", StatsService.LOW_STOCK_THRESHOLD);
 
         // Date-range sales report
-        model.addAttribute("dailySales",         statsService.getDailySales(startDate, endDate));
-        model.addAttribute("topSellingProducts", statsService.getTopSellingProducts(startDate, endDate));
+        model.addAttribute("dailySales",         statsService.getDailySales(startDate, endDate, username));
+        model.addAttribute("topSellingProducts", statsService.getTopSellingProducts(startDate, endDate, username));
         model.addAttribute("startDate", startDate);
         model.addAttribute("endDate",   endDate);
 

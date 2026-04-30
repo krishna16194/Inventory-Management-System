@@ -1,13 +1,12 @@
 package com.kr.bill.inventorymangementsystem.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Where;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
  * JPA entity representing a product (SKU) in the inventory.
@@ -50,4 +49,10 @@ public class Product {
      */
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean active = true;
+
+    /** The user who owns / manages this product. */
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private AppUser owner;
 }

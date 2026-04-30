@@ -28,21 +28,15 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
      */
     List<Bill> findByTransactionTimeBetweenOrderByTransactionTimeDesc(LocalDateTime start, LocalDateTime end);
 
-    /**
-     * Returns all bills whose customer name contains the given string
-     * (case-insensitive), ordered newest first. Used in bill-history search.
-     *
-     * @param name partial or full customer name to search for
-     * @return matching bills, newest first
-     */
+    List<Bill> findByOwnerUsernameAndTransactionTimeBetweenOrderByTransactionTimeDesc(String username, LocalDateTime start, LocalDateTime end);
+
     List<Bill> findByCustomerNameContainingIgnoreCaseOrderByTransactionTimeDesc(String name);
 
-    /**
-     * Returns all bills ordered by transaction time descending (newest first).
-     *
-     * @return all bills, newest first
-     */
+    List<Bill> findByOwnerUsernameAndCustomerNameContainingIgnoreCaseOrderByTransactionTimeDesc(String username, String name);
+
     List<Bill> findAllByOrderByTransactionTimeDesc();
+
+    List<Bill> findByOwnerUsernameOrderByTransactionTimeDesc(String username);
 
     /**
      * Calculates the total revenue collected within a given date-time range.
@@ -55,6 +49,9 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
     @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Bill b WHERE b.transactionTime BETWEEN :start AND :end")
     double sumTotalAmountByTransactionTimeBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
+    @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Bill b WHERE b.owner.username = :username AND b.transactionTime BETWEEN :start AND :end")
+    double sumTotalAmountByOwnerAndTransactionTimeBetween(@Param("username") String username, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
     /**
      * Counts the number of bills created within a given date-time range.
      *
@@ -63,4 +60,6 @@ public interface BillRepository extends JpaRepository<Bill, Long> {
      * @return number of bills in the range
      */
     long countByTransactionTimeBetween(LocalDateTime start, LocalDateTime end);
+
+    long countByOwnerUsernameAndTransactionTimeBetween(String username, LocalDateTime start, LocalDateTime end);
 }

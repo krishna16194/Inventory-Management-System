@@ -39,26 +39,107 @@ body {
 
 /* ── Navigation Bar ────────────────────────────────────────── */
 .navbar {
-    background-color: var(--card-background) !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #1a237e 0%, #283593 60%, #1565c0 100%) !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.22);
+    padding: 0.65rem 1.5rem;
     position: sticky;
     top: 0;
     z-index: 1030;
 }
 
 .navbar-brand {
-    font-weight: 700;
+    font-weight: 800;
     font-size: 1.2rem;
-    color: var(--primary-color) !important;
+    color: #ffffff !important;
+    letter-spacing: 0.02em;
+}
+
+.navbar-toggler {
+    border-color: rgba(255,255,255,0.4);
+}
+.navbar-toggler-icon {
+    filter: invert(1);
 }
 
 .nav-link {
+    color: rgba(255,255,255,0.82) !important;
+    font-weight: 500;
     transition: color var(--transition);
+    padding: 0.45rem 0.85rem !important;
+    border-radius: 6px;
 }
 
-.nav-link:hover {
-    color: var(--primary-color) !important;
+.nav-link:hover,
+.nav-link.active {
+    color: #ffffff !important;
+    background-color: rgba(255,255,255,0.12);
+}
+
+/* ── Navbar: User profile chip ──────────────────────────────── */
+.nav-user-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.28);
+    border-radius: 50px;
+    padding: 0.28rem 0.85rem 0.28rem 0.4rem;
+    color: #ffffff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.nav-user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #42a5f5, #1565c0);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.6);
+}
+
+/* ── Navbar: Logout button ──────────────────────────────────── */
+.btn-logout {
+    background: transparent;
+    border: 1.5px solid rgba(255, 100, 100, 0.7);
+    color: #ff8a80;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border-radius: 50px;
+    padding: 0.28rem 0.9rem;
+    transition: background var(--transition), color var(--transition), border-color var(--transition);
+    white-space: nowrap;
+}
+
+.btn-logout:hover {
+    background: rgba(229, 57, 53, 0.85);
+    border-color: #e53935;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(229, 57, 53, 0.4);
+}
+
+/* ── Navbar language dropdown ───────────────────────────────── */
+.navbar .btn-lang {
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.28);
+    color: #ffffff;
+    font-size: 0.82rem;
+    border-radius: 50px;
+    padding: 0.28rem 0.85rem;
+    font-weight: 500;
+}
+.navbar .btn-lang:hover {
+    background: rgba(255,255,255,0.22);
+    color: #ffffff;
 }
 
 /* ── Info Bar (date / time / location / today's stats) ─────── */
@@ -76,33 +157,72 @@ body {
     color: #555;
 }
 
-/* ── Tabs ──────────────────────────────────────────────────── */
-.nav-tabs {
-    border-bottom: 2px solid var(--border-color);
-    flex-wrap: nowrap;
-    overflow-x: auto;
+/* ── Tabs (completely custom – no Bootstrap .nav-tabs involved) ── */
+.tab-nav-wrap {
+    background: #f0f4ff;
+    border-radius: 14px;
+    padding: 6px;
+    display: inline-flex;
+    box-shadow: inset 0 1px 4px rgba(0,0,0,0.08);
+    margin-bottom: 4px;
+    flex-wrap: wrap;
+    gap: 4px;
 }
 
-.nav-tabs .nav-link {
+.tab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.52rem 1.4rem;
+    border-radius: 10px;
     border: none;
-    color: var(--secondary-color);
-    font-weight: 500;
-    padding: 0.85rem 1.4rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
     white-space: nowrap;
-    border-bottom: 3px solid transparent;
-    transition: color var(--transition), border-color var(--transition);
-    background-color: transparent;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    /* Inactive: clearly visible grey-blue pill */
+    background: #ffffff;
+    color: #4a5568;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
 
-.nav-tabs .nav-link:hover {
-    color: var(--primary-color);
-    border-bottom-color: rgba(0, 123, 255, 0.35);
+.tab-btn:hover {
+    background: #dbeafe;
+    color: #1d4ed8;
 }
 
-.nav-tabs .nav-link.active {
-    border-bottom: 3px solid var(--primary-color);
-    color: var(--primary-color);
-    background-color: transparent;
+.tab-btn.active {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(29, 78, 216, 0.40);
+}
+
+/* Low-stock badge inside tab */
+.tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    background: #f59e0b;
+    color: #000;
+    line-height: 1;
+}
+
+.tab-btn.active .tab-badge {
+    background: #fff;
+    color: #b45309;
 }
 
 .tab-content {
@@ -163,19 +283,81 @@ body {
 #scanner-container {
     border-radius: var(--border-radius);
     overflow: hidden;
-    border: 2px dashed var(--primary-color);
+    border: 2px solid var(--primary-color);
     background: #000;
+    position: relative;
+    width: 100%;
+    max-width: 480px;
+}
+
+#scanner-container video {
+    width: 100%;
+    display: block;
 }
 
 /* Pulsing border when scanning is active */
 #scanner-container.scanning-active {
-    animation: scanPulse 1.5s ease-in-out infinite;
+    animation: scanBorder 2s ease-in-out infinite;
 }
 
-@keyframes scanPulse {
-    0%, 100% { border-color: var(--primary-color); }
-    50%       { border-color: var(--success-color); }
+@keyframes scanBorder {
+    0%,100% { border-color: var(--primary-color); }
+    50%      { border-color: #00e676; box-shadow: 0 0 12px rgba(0,230,118,0.4); }
 }
+
+/* Corner guide box overlay */
+#scanner-container.scanning-active::before {
+    content: '';
+    position: absolute;
+    inset: 10%;
+    border: 2px solid rgba(0,230,118,0.55);
+    border-radius: 6px;
+    pointer-events: none;
+    z-index: 9;
+}
+
+/* Animated green scan-line */
+#scanner-container.scanning-active::after {
+    content: '';
+    position: absolute;
+    left: 10%;
+    width: 80%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #00e676, transparent);
+    box-shadow: 0 0 8px 3px rgba(0,230,118,0.7);
+    animation: scanLine 1.6s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 10;
+    border-radius: 2px;
+}
+
+@keyframes scanLine {
+    0%   { top: 12%; }
+    50%  { top: 86%; }
+    100% { top: 12%; }
+}
+
+/* Torch / flash button */
+#torch-btn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 20;
+    background: rgba(0,0,0,0.65);
+    border: 1.5px solid rgba(255,255,255,0.5);
+    color: #fff;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+#torch-btn:hover  { background: rgba(255,200,0,0.75); }
+#torch-btn.active { background: rgba(255,200,0,0.95); color: #000; }
 
 /* ── Billing Table ─────────────────────────────────────────── */
 #billing-table tbody tr.billing-item-row {

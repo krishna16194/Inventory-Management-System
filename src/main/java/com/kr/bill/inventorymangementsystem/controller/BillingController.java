@@ -1,13 +1,17 @@
 package com.kr.bill.inventorymangementsystem.controller;
 
+import com.kr.bill.inventorymangementsystem.model.AppUser;
 import com.kr.bill.inventorymangementsystem.model.Bill;
 import com.kr.bill.inventorymangementsystem.model.BillItem;
 import com.kr.bill.inventorymangementsystem.model.Product;
 import com.kr.bill.inventorymangementsystem.repository.BillRepository;
 import com.kr.bill.inventorymangementsystem.repository.ProductRepository;
+import com.kr.bill.inventorymangementsystem.service.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -38,10 +42,13 @@ public class BillingController {
 
     private final ProductRepository productRepository;
     private final BillRepository billRepository;
+    private final UserService userService;
 
-    public BillingController(ProductRepository productRepository, BillRepository billRepository) {
+    public BillingController(ProductRepository productRepository, BillRepository billRepository,
+                             UserService userService) {
         this.productRepository = productRepository;
         this.billRepository = billRepository;
+        this.userService = userService;
     }
 
     // -----------------------------------------------------------------------
@@ -78,8 +85,10 @@ public class BillingController {
      * @return redirect to {@code /dashboard}
      */
     @PostMapping("/add")
-    public String addProductToBill(@RequestParam String productId, HttpSession session) {
-        addToCart(productId.trim(), session);
+    public String addProductToBill(@RequestParam String productId,
+                                   HttpSession session,
+                                   @AuthenticationPrincipal UserDetails userDetails) {
+        addToCart(productId.trim(), session, userDetails.getUsername());
         return "redirect:/dashboard";
     }
 
@@ -102,7 +111,9 @@ public class BillingController {
     @PostMapping("/add-scan")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> addProductScan(
-            @RequestParam String productId, HttpSession session) {
+            @RequestParam String productId,
+            HttpSession session,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         Map<String, Object> response = new HashMap<>();
         String trimmedId = productId.trim();
@@ -115,6 +126,15 @@ public class BillingController {
         }
 
         Product product = productOpt.get();
+
+        // Verify ownership — only scan your own products
+        if (product.getOwner() == null
+                || !product.getOwner().getUsername().equals(userDetails.getUsername())) {
+            response.put("success", false);
+            response.put("message", "Product not found: " + trimmedId);
+            return ResponseEntity.ok(response);
+        }
+
         if (product.getQuantity() <= 0) {
             response.put("success", false);
             response.put("message", "Out of stock: " + product.getName());
@@ -210,16 +230,20 @@ public class BillingController {
             HttpSession session,
             @RequestParam String customerName,
             @RequestParam String customerNumber,
-            @RequestParam String location) {
+            @RequestParam String location,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
         Map<Product, Integer> cart = getCart(session);
         if (cart.isEmpty()) return "redirect:/dashboard";
+
+        AppUser owner = userService.findByUsername(userDetails.getUsername());
 
         Bill bill = new Bill();
         bill.setTotalAmount(calculateTotal(cart));
         bill.setCustomerName(customerName.trim());
         bill.setCustomerNumber(customerNumber.trim());
         bill.setLocation(location);
+        bill.setOwner(owner);
 
         List<BillItem> billItems = new ArrayList<>();
         for (Map.Entry<Product, Integer> entry : cart.entrySet()) {
@@ -277,9 +301,11 @@ public class BillingController {
      * @param productId trimmed barcode / product ID
      * @param session   HTTP session
      */
-    private void addToCart(String productId, HttpSession session) {
+    private void addToCart(String productId, HttpSession session, String username) {
         productRepository.findById(productId).ifPresent(product -> {
-            if (product.getQuantity() > 0) {
+            if (product.getQuantity() > 0
+                    && product.getOwner() != null
+                    && product.getOwner().getUsername().equals(username)) {
                 Map<Product, Integer> cart = getCart(session);
                 cart.put(product, cart.getOrDefault(product, 0) + 1);
                 product.setQuantity(product.getQuantity() - 1);

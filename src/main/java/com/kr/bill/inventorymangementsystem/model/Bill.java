@@ -2,6 +2,7 @@ package com.kr.bill.inventorymangementsystem.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -51,8 +52,15 @@ public class Bill {
      * The individual product lines belonging to this bill.
      * Mapped by {@link BillItem#getBill()} and cascade-persisted.
      */
+    @JsonIgnore
     @OneToMany(mappedBy = "bill", cascade = CascadeType.ALL)
     private List<BillItem> billItems;
+
+    /** The user who created this bill. */
+    @JsonIgnore
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private AppUser owner;
 
     /**
      * Lifecycle callback: automatically sets {@link #transactionTime} to the

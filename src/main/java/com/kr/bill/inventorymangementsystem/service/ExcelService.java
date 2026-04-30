@@ -1,5 +1,6 @@
 package com.kr.bill.inventorymangementsystem.service;
 
+import com.kr.bill.inventorymangementsystem.model.AppUser;
 import com.kr.bill.inventorymangementsystem.model.Product;
 import com.kr.bill.inventorymangementsystem.repository.ProductRepository;
 import org.apache.poi.ss.usermodel.*;
@@ -117,6 +118,39 @@ public class ExcelService {
                 product.setPrice(row.getCell(2).getNumericCellValue());
                 product.setQuantity((int) row.getCell(3).getNumericCellValue());
                 product.setActive(true);
+                toSave.add(product);
+            }
+        }
+
+        productRepository.saveAll(toSave);
+    }
+
+    /**
+     * Imports products from Excel and assigns {@code owner} to any newly created product.
+     * Existing products (matched by ID) are updated but owner is preserved.
+     */
+    public void importProductsFromExcel(MultipartFile file, AppUser owner) throws IOException {
+        List<Product> toSave = new ArrayList<>();
+
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = workbook.getSheetAt(0);
+
+            for (Row row : sheet) {
+                if (row.getRowNum() == 0) continue;
+
+                Cell idCell = row.getCell(0);
+                if (idCell == null || idCell.getCellType() == CellType.BLANK) continue;
+
+                String id = idCell.getStringCellValue().trim();
+                if (id.isEmpty()) continue;
+
+                Product product = productRepository.findById(id).orElseGet(Product::new);
+                product.setId(id);
+                product.setName(row.getCell(1).getStringCellValue().trim());
+                product.setPrice(row.getCell(2).getNumericCellValue());
+                product.setQuantity((int) row.getCell(3).getNumericCellValue());
+                product.setActive(true);
+                if (product.getOwner() == null) product.setOwner(owner);
                 toSave.add(product);
             }
         }
